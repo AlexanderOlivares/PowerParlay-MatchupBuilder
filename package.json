@@ -1,0 +1,23 @@
+{
+  "name": "parlay-matchup-finder",
+  "module": "index.ts",
+  "type": "module",
+  "devDependencies": {
+    "@types/pg": "^8.10.2",
+    "@types/uuid": "^9.0.2",
+    "bun-types": "latest",
+    "prisma": "^4.16.2"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "@prisma/client": "4.16.2",
+    "axios": "^1.4.0",
+    "dotenv": "^16.3.1",
+    "moment": "^2.29.4",
+    "moment-timezone": "^0.5.43",
+    "pg": "^8.11.1",
+    "uuid": "^9.0.0"
+  }
+}
