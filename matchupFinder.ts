@@ -50,6 +50,11 @@ const buildSportRequests = [MLB, MLS].flatMap(sport => {
 
 const sportsData = await Promise.all(buildSportRequests);
 
+// TODO update with other soccer leagues
+function isDrawEligible(league: string) {
+  return ["MLS"].includes(league);
+}
+
 interface IPotentialMatchup {
   id: string;
   eventId: string;
@@ -58,6 +63,7 @@ interface IPotentialMatchup {
   name: string;
   league: string;
   gameStatus: string;
+  drawEligible: boolean;
 }
 
 const formattedMatchups: IPotentialMatchup[] = [];
@@ -85,6 +91,7 @@ for (const sport of sportsData) {
       gameDate,
       league,
       gameStatus,
+      drawEligible: isDrawEligible(league),
     };
 
     formattedMatchups.push(matchup);

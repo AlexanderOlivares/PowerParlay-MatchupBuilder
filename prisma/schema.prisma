@@ -1,8 +1,6 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
 }
 
 datasource db {
@@ -11,11 +9,17 @@ datasource db {
 }
 
 model PotentialMatchup {
-  id         String @id @default(uuid())
-  eventId    String
-  gameDate   String
-  gameTime   String
-  name       String
-  league     String
-  gameStatus String
+  id                String   @id @unique @default(uuid())
+  eventId           String
+  gameDate          String
+  gameTime          String
+  name              String
+  league            String
+  gameStatus        String
+  drawEligible      Boolean
+  adminUseGame      Boolean?
+  adminUseMoneyline Boolean?
+  adminUseOverUnder Boolean?
+  adminUseHomeDraw  Boolean?
+  adminUseAwayDraw  Boolean?
 }
