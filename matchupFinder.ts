@@ -14,11 +14,25 @@ const MLB = process.env.MLB as string;
 const MLS = process.env.MLS as string;
 
 const WEEK_LENGTH = 7;
-const upcomingWeekDates = Array.from({ length: WEEK_LENGTH }, (_, i) => {
-  return moment().add(i, "days").format("YYYYMMDD");
-});
+const SUNDAY_CRON_OFFSET = 2;
 
-function promiseDotAll(dates: string[], sport: string) {
+/*
+This script is designed to run on Sun to capture games for the upcoming Tue - Mon. 
+Added optional params with defaults for future schedule flexibility 
+*/
+export function getUpcomingWeekDates(
+  startDate: moment.Moment = moment(),
+  dayOffset: number = SUNDAY_CRON_OFFSET
+) {
+  return Array.from({ length: WEEK_LENGTH }, (_, i) => {
+    return moment(startDate)
+      .tz("America/Los_Angeles")
+      .add(i + dayOffset, "days")
+      .format("YYYYMMDD");
+  });
+}
+
+export function promiseDotAll(dates: string[], sport: string) {
   return dates.map(async date => {
     try {
       const { data } = await axios.get(`${BASE_URL}${sport}?dates=${date}&tz=${process.env.TZ}`);
@@ -27,13 +41,13 @@ function promiseDotAll(dates: string[], sport: string) {
       if (axios.isAxiosError(error)) {
         const axiosError = error as AxiosError;
         if (axiosError.response) {
-          console.log(axiosError.response.data);
-          console.log(axiosError.response.status);
-          console.log(axiosError.response.headers);
+          console.error(axiosError.response.data);
+          console.error(axiosError.response.status);
+          console.error(axiosError.response.headers);
         } else if (axiosError.request) {
-          console.log(axiosError.request);
+          console.error(axiosError.request);
         }
-        console.log("Error:", axiosError.message);
+        console.error("Error:", axiosError.message);
       } else if (error instanceof Error) {
         console.error("Error:", error.message);
       } else {
@@ -43,6 +57,8 @@ function promiseDotAll(dates: string[], sport: string) {
     }
   });
 }
+
+const upcomingWeekDates = getUpcomingWeekDates();
 
 const buildSportRequests = [MLB, MLS].flatMap(sport => {
   return promiseDotAll(upcomingWeekDates, sport);
@@ -100,6 +116,7 @@ for (const sport of sportsData) {
 
 const insertCount = await prisma.potentialMatchup.createMany({
   data: formattedMatchups,
+  skipDuplicates: true,
 });
 
 console.log(`${insertCount.count} potential matchups added`);
