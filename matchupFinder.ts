@@ -114,9 +114,25 @@ for (const sport of sportsData) {
   }
 }
 
+const existingMatchups = await prisma.potentialMatchup.findMany({
+  where: {
+    gameDate: {
+      in: upcomingWeekDates,
+    },
+  },
+  select: {
+    eventId: true,
+  },
+});
+
+const existingDbEventIds = existingMatchups.map(({ eventId }) => eventId);
+
+const deDupedMatchups = formattedMatchups.filter(
+  ({ eventId }) => !existingDbEventIds.includes(eventId)
+);
+
 const insertCount = await prisma.potentialMatchup.createMany({
-  data: formattedMatchups,
-  skipDuplicates: true,
+  data: deDupedMatchups,
 });
 
 console.log(`${insertCount.count} potential matchups added`);
