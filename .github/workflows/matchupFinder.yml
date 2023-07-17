@@ -1,0 +1,23 @@
+name: Run matchup finder
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 11 * * 0" # Run at 11 AM every Sunday
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup Bun Runtime
+        uses: antongolub/action-setup-bun@v1
+        # with:
+        # Optional, if empty the latest bun version will be used
+        # bun-version: 0.1.2
+
+      - name: Run script
+        run: bun run actionsTest.ts
