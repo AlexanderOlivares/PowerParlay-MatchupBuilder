@@ -29,4 +29,9 @@ if (process.env.NODE_ENV === "production") {
   );
 }
 
+logger.log({
+  level: "info",
+  message: "Logger successfully setup",
+});
+
 export default logger;
