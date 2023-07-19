@@ -7,6 +7,13 @@ dotenv.config();
 const logger = winston.createLogger({
   level: "http",
   format: winston.format.json(),
+  transports: [
+    new AxiomTransport({
+      dataset: process.env.AXIOM_DATASET,
+      token: process.env.AXIOM_TOKEN,
+      orgId: process.env.AXIOM_ORG_ID,
+    }),
+  ],
 });
 
 if (process.env.NODE_ENV !== "production") {
@@ -17,17 +24,17 @@ if (process.env.NODE_ENV !== "production") {
   );
 }
 
-if (process.env.NODE_ENV === "production") {
-  console.log("in production block of winstonLogger.ts");
+// if (process.env.NODE_ENV === "production") {
+//   console.log("in production block of winstonLogger.ts");
 
-  logger.add(
-    new AxiomTransport({
-      dataset: process.env.AXIOM_DATASET,
-      token: process.env.AXIOM_TOKEN,
-      orgId: process.env.AXIOM_ORG_ID,
-    })
-  );
-}
+//   logger.add(
+//     new AxiomTransport({
+//       dataset: process.env.AXIOM_DATASET,
+//       token: process.env.AXIOM_TOKEN,
+//       orgId: process.env.AXIOM_ORG_ID,
+//     })
+//   );
+// }
 
 logger.log({
   level: "info",
