@@ -24,11 +24,14 @@ jobs:
       - name: Install ts-node
         run: npm install -g ts-node
 
+      - name: Update .env File
+        run: |
+          touch .env
+          echo DATABASE_URL=${{ secrets.DATABASE_URL }} >> .env
+          echo AXIOM_DATASET=${{ secrets.AXIOM_DATASET }} >> .env
+          echo AXIOM_ORG_ID=${{ secrets.AXIOM_ORG_ID }} >> .env
+          echo AXIOM_AXIOM_TOKEN=${{ secrets.AXIOM_TOKEN }} >> .env
+          echo NODE_ENV=${{ secrets.NODE_ENV }} >> .env
+
       - name: Run script
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          AXIOM_DATASET: ${{ secrets.AXIOM_DATASET }}
-          AXIOM_ORG_ID: ${{ secrets.AXIOM_ORG_ID }}
-          AXIOM_AXIOM_TOKEN: ${{ secrets.AXIOM_TOKEN }}
-          NODE_ENV: ${{ secrets.NODE_ENV }}
         run: ts-node actionsTest.ts
