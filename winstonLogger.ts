@@ -18,6 +18,8 @@ if (process.env.NODE_ENV !== "production") {
 }
 
 if (process.env.NODE_ENV === "production") {
+  console.log("in production block of winstonLogger.ts");
+
   logger.add(
     new AxiomTransport({
       dataset: process.env.AXIOM_DATASET,
