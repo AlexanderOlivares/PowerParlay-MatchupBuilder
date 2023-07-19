@@ -31,4 +31,4 @@ jobs:
           AXIOM_ORG_ID: ${{ secrets.AXIOM_ORG_ID }}
           AXIOM_AXIOM_TOKEN: ${{ secrets.AXIOM_TOKEN }}
           NODE_ENV: ${{ secrets.NODE_ENV }}
-        run: node-ts actionsTest.ts
+        run: ts-node actionsTest.ts
