@@ -34,4 +34,10 @@ jobs:
           echo NODE_ENV=${{ secrets.NODE_ENV }} >> .env
 
       - name: Run script
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          AXIOM_DATASET: ${{ secrets.AXIOM_DATASET }}
+          AXIOM_ORG_ID: ${{ secrets.AXIOM_ORG_ID }}
+          AXIOM_AXIOM_TOKEN: ${{ secrets.AXIOM_TOKEN }}
+          NODE_ENV: ${{ secrets.NODE_ENV }}
         run: ts-node actionsTest.ts
