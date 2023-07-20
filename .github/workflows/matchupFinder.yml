@@ -24,6 +24,10 @@ jobs:
       - name: Install ts-node
         run: npm install -g ts-node
 
+      - name: echo test
+        run: |
+          echo ${{ secrets.AXIOM_TOKEN }}
+
       - name: Run script
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
