@@ -22,9 +22,9 @@ if (process.env.NODE_ENV !== "production") {
   );
 }
 
-if (process.env.NODE_ENV === "production") {
-  logger.add(new AxiomTransport({}));
-}
+// if (process.env.NODE_ENV === "production") {
+//   logger.add(new AxiomTransport({}));
+// }
 
 // logger.error({
 //   level: "error",
