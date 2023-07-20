@@ -32,10 +32,6 @@ logger.warn({
 logger.info({
   level: "info",
 });
-logger.log({
-  level: "log",
-  message: "from gh actions!",
-});
 logger.http({
   level: "http",
   message: "from gh actions!",
