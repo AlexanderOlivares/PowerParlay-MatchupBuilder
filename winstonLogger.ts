@@ -33,20 +33,20 @@ logger.transports.forEach(t => {
   console.log(util.inspect(t, { depth: null }));
 });
 
-logger.error({
-  level: "error",
-  message: "hello from gh actions!",
+// logger.error({
+//   level: "error",
+//   message: "hello!",
+// });
+logger.warn({
+  level: "warn",
+  message: "from gh actions!",
 });
-// logger.warn({
-//   level: "warn",
-//   message: "from gh actions!",
-// });
-// logger.info({
-//   level: "info",
-// });
-// logger.http({
-//   level: "http",
-//   message: "from gh actions!",
-// });
+logger.info({
+  level: "info",
+});
+logger.http({
+  level: "http",
+  message: "from gh actions!",
+});
 
 export default logger;
