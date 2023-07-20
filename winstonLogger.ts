@@ -26,16 +26,13 @@ if (process.env.NODE_ENV !== "production") {
 //   logger.add(new AxiomTransport({}));
 // }
 
-// logger.error({
-//   level: "error",
-//   message: "hello!",
-// });
+logger.error({
+  message: "error",
+});
 logger.warn({
-  level: "warn",
   message: "new transport config",
 });
 logger.info({
-  level: "info",
   message: "new transport config",
 });
 logger.http({
@@ -43,6 +40,12 @@ logger.http({
   message: "new transport config",
 });
 
-throw new Error("alex threw this uncaught error");
+function rejectWithError() {
+  return new Promise((resolve, reject) => {
+    reject(new Error("Rejected promise"));
+  });
+}
+
+rejectWithError();
 
 export default logger;
