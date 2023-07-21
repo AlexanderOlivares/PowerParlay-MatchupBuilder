@@ -1,11 +1,18 @@
-// tests.js
-
 import axios from "axios";
 import moment from "moment";
 import "moment-timezone";
-import { getUpcomingWeekDates, promiseDotAll } from "../matchupFinder";
+import {
+  getWorkflowDayOffset,
+  getWorkflowStartDate,
+  getUpcomingWeekDates,
+  promiseDotAll,
+} from "../matchupFinder";
 
 describe("getUpcomingWeekDates", () => {
+  afterEach(() => {
+    moment.now = () => Date.now();
+  });
+
   const WEEK_LENGTH = 7;
 
   test("returns 7 dates", () => {
@@ -110,5 +117,49 @@ describe("promiseDotAll", () => {
 
     expect(axios.get).toHaveBeenCalledTimes(1);
     await expect(promise).resolves.toEqual({ error: true });
+  });
+});
+
+describe("customOffsetHandler", () => {
+  it("Returns offset number if provided or default to 2 for scheduled sunday offset", async () => {
+    expect(getWorkflowDayOffset("0")).toBe(0);
+    expect(getWorkflowDayOffset("1")).toBe(1);
+    expect(getWorkflowDayOffset("2")).toBe(2);
+
+    expect(getWorkflowDayOffset(undefined)).toBe(2);
+    expect(getWorkflowDayOffset("")).toBe(2);
+  });
+});
+
+describe("customDateHandler", () => {
+  it("returns current date if no argument", () => {
+    const result = getWorkflowStartDate();
+    const undef = getWorkflowStartDate(undefined);
+
+    expect(result.format("YYYY-MM-DD")).toEqual(moment().format("YYYY-MM-DD"));
+    expect(undef.format("YYYY-MM-DD")).toEqual(moment().format("YYYY-MM-DD"));
+  });
+
+  it("returns current date if argument is empty string", () => {
+    const empty = getWorkflowStartDate("");
+
+    expect(empty.format("YYYY-MM-DD")).toEqual(moment().format("YYYY-MM-DD"));
+  });
+
+  it("parses date string if provided", () => {
+    const input = "2023-07-22";
+    const result = getWorkflowStartDate(input);
+
+    expect(result.format("YYYY-MM-DD")).toEqual(input);
+  });
+
+  it("returns moment object", () => {
+    const undef = getWorkflowStartDate();
+    const empty = getWorkflowStartDate("");
+    const proper = getWorkflowStartDate("2023-07-22");
+
+    expect(undef).toBeInstanceOf(moment);
+    expect(empty).toBeInstanceOf(moment);
+    expect(proper).toBeInstanceOf(moment);
   });
 });

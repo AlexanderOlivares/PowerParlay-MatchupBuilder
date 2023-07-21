@@ -2,6 +2,15 @@ name: Run matchup finder
 
 on:
   workflow_dispatch:
+    inputs:
+      START_DATE:
+        description: "Initial date in format YYYY-MM-DD that the DAY_OFFSET will reference"
+        required: false
+        type: string
+      DAY_OFFSET:
+        description: "Number of days after START_DATE to start looking for matchups"
+        required: false
+        type: number
   schedule:
     - cron: "0 11 * * 0" # Run at 11 AM every Sunday
 
@@ -31,4 +40,6 @@ jobs:
           AXIOM_ORG_ID: ${{ secrets.AXIOM_ORG_ID }}
           AXIOM_TOKEN: ${{ secrets.AXIOM_TOKEN }}
           NODE_ENV: ${{ secrets.NODE_ENV }}
-        run: ts-node winstonLogger.ts
+          START_DATE: ${{ inputs.START_DATE }}
+          DAY_OFFSET: ${{ inputs.DAY_OFFSET }}
+        run: ts-node actionsTest.ts

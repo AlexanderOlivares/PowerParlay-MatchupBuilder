@@ -17,35 +17,9 @@ const logger = winston.createLogger({
 if (process.env.NODE_ENV !== "production") {
   logger.add(
     new winston.transports.Console({
-      format: winston.format.simple(),
+      format: winston.format.json(),
     })
   );
 }
-
-// if (process.env.NODE_ENV === "production") {
-//   logger.add(new AxiomTransport({}));
-// }
-
-logger.error({
-  message: "error",
-});
-logger.warn({
-  message: "new transport config",
-});
-logger.info({
-  message: "new transport config",
-});
-logger.http({
-  level: "http",
-  message: "new transport config",
-});
-
-function rejectWithError() {
-  return new Promise((resolve, reject) => {
-    reject(new Error("Rejected promise"));
-  });
-}
-
-rejectWithError();
 
 export default logger;

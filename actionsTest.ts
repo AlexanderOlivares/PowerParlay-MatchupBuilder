@@ -1,9 +1,6 @@
 import logger from "./winstonLogger.ts";
+import { getUpcomingWeekDates } from "./matchupFinder.ts";
 
-console.log("Did i run?");
-console.log(process.env.NODE_ENV);
+const upcomingWeekDates = getUpcomingWeekDates();
 
-logger.error("Hello World");
-logger.warn("Hello World");
-logger.info("Hello World");
-logger.http("Hello World");
+logger.info({ message: upcomingWeekDates });

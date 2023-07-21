@@ -4,26 +4,40 @@ import moment from "moment";
 import "moment-timezone";
 import { v4 as uuidv4 } from "uuid";
 import { PrismaClient } from "@prisma/client";
+import logger from "./winstonLogger";
 
 dotenv.config();
 
 const prisma = new PrismaClient();
 
 const BASE_URL = process.env.BASE_URL;
+const TZ = process.env.TZ;
+const WORKFLOW_DAY_OFFSET = process.env.DAY_OFFSET;
+const WORKFLOW_START_DATE = process.env.START_DATE;
+
 const MLB = process.env.MLB as string;
 const MLS = process.env.MLS as string;
 
-const WEEK_LENGTH = 7;
-const SUNDAY_CRON_OFFSET = 2;
+export function getWorkflowStartDate(dateString?: string) {
+  if (!dateString) return moment();
+  return moment(dateString);
+}
+
+export function getWorkflowDayOffset(numberAsString?: string) {
+  const SUNDAY_CRON_OFFSET = 2;
+  if (!numberAsString) return SUNDAY_CRON_OFFSET;
+  return Number(numberAsString) ?? SUNDAY_CRON_OFFSET;
+}
 
 /*
 This script is designed to run on Sun to capture games for the upcoming Tue - Mon. 
-Added optional params with defaults for future schedule flexibility 
+Optional params can be manually added in the github workflow_dispatch inputs
 */
 export function getUpcomingWeekDates(
-  startDate: moment.Moment = moment(),
-  dayOffset: number = SUNDAY_CRON_OFFSET
+  startDate: moment.Moment = getWorkflowStartDate(WORKFLOW_START_DATE),
+  dayOffset: number = getWorkflowDayOffset(WORKFLOW_DAY_OFFSET)
 ) {
+  const WEEK_LENGTH = 7;
   return Array.from({ length: WEEK_LENGTH }, (_, i) => {
     return moment(startDate)
       .tz("America/Los_Angeles")
@@ -35,24 +49,24 @@ export function getUpcomingWeekDates(
 export function promiseDotAll(dates: string[], sport: string) {
   return dates.map(async date => {
     try {
-      const { data } = await axios.get(`${BASE_URL}${sport}?dates=${date}&tz=${process.env.TZ}`);
+      const { data } = await axios.get(`${BASE_URL}${sport}?dates=${date}&tz=${TZ}`);
       return data;
     } catch (error) {
       if (axios.isAxiosError(error)) {
         const axiosError = error as AxiosError;
         if (axiosError.response) {
-          console.error(axiosError.response.data);
-          console.error(axiosError.response.status);
-          console.error(axiosError.response.headers);
+          logger.error({ message: axiosError.response });
         } else if (axiosError.request) {
-          console.error(axiosError.request);
+          logger.error({ message: axiosError.request });
+        } else {
+          logger.error({ message: axiosError });
         }
-        console.error("Error:", axiosError.message);
       } else if (error instanceof Error) {
-        console.error("Error:", error.message);
+        logger.error({ message: error.message });
       } else {
-        console.error("Unknown error occurred.");
+        logger.error({ unknownError: true, message: error });
       }
+      logger.warn({ message: "Error caught and returned { error: true }" });
       return { error: true };
     }
   });
@@ -94,7 +108,10 @@ for (const sport of sportsData) {
   for (const event of sport.events) {
     // make sure event falls within the valid week window
     const gameDate = moment.utc(event.date).tz("America/Los_Angeles").format("YYYYMMDD");
-    if (!upcomingWeekDates.includes(gameDate)) continue;
+    if (!upcomingWeekDates.includes(gameDate)) {
+      logger.warn({ message: "Game date not in upcoming week", anomalyData: { gameDate, event } });
+      continue;
+    }
 
     const { name: gameStatus } = event.status.type;
     if (gameStatus !== "STATUS_SCHEDULED") continue;
@@ -135,6 +152,6 @@ const insertCount = await prisma.potentialMatchup.createMany({
   data: deDupedMatchups,
 });
 
-console.log(`${insertCount.count} potential matchups added`);
+logger.info({ message: `${insertCount.count} potential matchups added` });
 
 await prisma.$disconnect();
