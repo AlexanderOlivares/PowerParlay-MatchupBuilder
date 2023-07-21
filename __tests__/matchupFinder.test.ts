@@ -2,11 +2,11 @@ import axios from "axios";
 import moment from "moment";
 import "moment-timezone";
 import {
+  getUpcomingWeekDates,
   getWorkflowDayOffset,
   getWorkflowStartDate,
-  getUpcomingWeekDates,
   promiseDotAll,
-} from "../matchupFinder";
+} from "../utils/matchupFinderUtils";
 
 describe("getUpcomingWeekDates", () => {
   afterEach(() => {
