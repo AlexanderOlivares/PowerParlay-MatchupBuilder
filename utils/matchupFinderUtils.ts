@@ -30,7 +30,6 @@ export function getUpcomingWeekDates(
   const WEEK_LENGTH = 7;
   return Array.from({ length: WEEK_LENGTH }, (_, i) => {
     return moment(startDate)
-      .tz("America/Los_Angeles")
       .add(i + dayOffset, "days")
       .format("YYYYMMDD");
   });

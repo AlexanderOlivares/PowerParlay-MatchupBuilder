@@ -42,4 +42,4 @@ jobs:
           NODE_ENV: ${{ secrets.NODE_ENV }}
           START_DATE: ${{ inputs.START_DATE }}
           DAY_OFFSET: ${{ inputs.DAY_OFFSET }}
-        run: ts-node actionsTest.ts
+        run: ts-node matchupFinder.ts
