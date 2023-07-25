@@ -40,6 +40,8 @@ jobs:
           AXIOM_ORG_ID: ${{ secrets.AXIOM_ORG_ID }}
           AXIOM_TOKEN: ${{ secrets.AXIOM_TOKEN }}
           NODE_ENV: ${{ secrets.NODE_ENV }}
+          BASE_URL: ${{ secrets.BASE_URL }}
+          API_KEY: ${{ secrets.API_KEY }}
           START_DATE: ${{ inputs.START_DATE }}
           DAY_OFFSET: ${{ inputs.DAY_OFFSET }}
         run: ts-node matchupFinder.ts

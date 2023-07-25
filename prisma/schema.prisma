@@ -10,13 +10,17 @@ datasource db {
 
 model PotentialMatchup {
   id                String   @id @unique @default(uuid())
-  eventId           String
-  gameDate          String
-  gameTime          String
-  name              String
-  league            String
-  gameStatus        String
   drawEligible      Boolean
+  idEvent           String
+  idHomeTeam        String
+  idAwayTeam        String
+  idLeague          String
+  strEvent          String
+  strLeague         String
+  strHomeTeam       String
+  strAwayTeam       String
+  strTimestamp      String
+  strThumb          String
   adminUseGame      Boolean?
   adminUseMoneyline Boolean?
   adminUseOverUnder Boolean?

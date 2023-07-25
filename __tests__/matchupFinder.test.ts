@@ -5,8 +5,10 @@ import {
   getUpcomingWeekDates,
   getWorkflowDayOffset,
   getWorkflowStartDate,
+  missingMandatoryFields,
   promiseDotAll,
 } from "../utils/matchupFinderUtils";
+import { leagueLookup } from "../utils/leagueMap";
 
 describe("getUpcomingWeekDates", () => {
   afterEach(() => {
@@ -28,8 +30,8 @@ describe("getUpcomingWeekDates", () => {
 
     const dates = getUpcomingWeekDates(sun);
 
-    expect(dates[0]).toBe("20230228");
-    expect(dates[6]).toBe("20230306");
+    expect(dates[0]).toBe("2023-02-28");
+    expect(dates[6]).toBe("2023-03-06");
   });
 
   test("Should start with today if dayOffset is equal to 0", () => {
@@ -37,7 +39,7 @@ describe("getUpcomingWeekDates", () => {
     moment.now = () => today.valueOf();
     const dates = getUpcomingWeekDates(today, 0);
 
-    expect(dates[0]).toBe("20230721");
+    expect(dates[0]).toBe("2023-07-21");
   });
 
   test("dates are sequential starting Tuesday", () => {
@@ -51,13 +53,13 @@ describe("getUpcomingWeekDates", () => {
     moment.now = () => sunTimestamp + 24 * 60 * 60 * 1000;
 
     expect(dates).toEqual([
-      "20230228",
-      "20230301",
-      "20230302",
-      "20230303",
-      "20230304",
-      "20230305",
-      "20230306",
+      "2023-02-28",
+      "2023-03-01",
+      "2023-03-02",
+      "2023-03-03",
+      "2023-03-04",
+      "2023-03-05",
+      "2023-03-06",
     ]);
   });
 
@@ -68,8 +70,8 @@ describe("getUpcomingWeekDates", () => {
 
     const dates = getUpcomingWeekDates(moment());
 
-    expect(dates[0]).toBe("20230228");
-    expect(dates[6]).toBe("20230306");
+    expect(dates[0]).toBe("2023-02-28");
+    expect(dates[6]).toBe("2023-03-06");
   });
 
   test("should work with only the dayOffset argument", () => {
@@ -78,8 +80,8 @@ describe("getUpcomingWeekDates", () => {
 
     const dates = getUpcomingWeekDates(undefined, 1);
 
-    expect(dates[0]).toBe("20230227");
-    expect(dates[6]).toBe("20230305");
+    expect(dates[0]).toBe("2023-02-27");
+    expect(dates[6]).toBe("2023-03-05");
   });
 
   test("should work with both arguments", () => {
@@ -88,8 +90,8 @@ describe("getUpcomingWeekDates", () => {
 
     const dates = getUpcomingWeekDates(moment(), 3);
 
-    expect(dates[0]).toBe("20230301");
-    expect(dates[6]).toBe("20230307");
+    expect(dates[0]).toBe("2023-03-01");
+    expect(dates[6]).toBe("2023-03-07");
   });
 });
 
@@ -102,18 +104,17 @@ beforeEach(() => {
 describe("promiseDotAll", () => {
   it("makes requests for each date", async () => {
     const dates = ["2023-01-01", "2023-01-02"];
-    const sport = "MLB";
 
     (axios.get as any).mockResolvedValue({ data: "mock data" });
 
-    promiseDotAll(dates, sport);
+    promiseDotAll(dates, "4424");
 
     expect(axios.get).toHaveBeenCalledTimes(2);
     expect(axios.get).toHaveBeenCalledWith(
-      `${process.env.BASE_URL}${sport}?dates=2023-01-01&tz=${process.env.TZ}`
+      `${process.env.BASE_URL}/v1/json/${process.env.API_KEY}/eventsday.php?d=${dates[0]}&l=4424`
     );
     expect(axios.get).toHaveBeenCalledWith(
-      `${process.env.BASE_URL}${sport}?dates=2023-01-02&tz=${process.env.TZ}`
+      `${process.env.BASE_URL}/v1/json/${process.env.API_KEY}/eventsday.php?d=${dates[1]}&l=4424`
     );
   });
 
@@ -169,5 +170,39 @@ describe("customDateHandler", () => {
     expect(undef).toBeInstanceOf(moment);
     expect(empty).toBeInstanceOf(moment);
     expect(proper).toBeInstanceOf(moment);
+  });
+});
+
+describe("missingMandatoryFields", () => {
+  it("returns true if at least 1 mandatory field is missing", async () => {
+    const mandatoryExist = {
+      1: "hi",
+      2: "hi",
+      3: "hi",
+    };
+    expect(missingMandatoryFields(["1", "2", "3"], mandatoryExist)).toBe(false);
+  });
+  it("returns false if at least 1 mandatory field is null", async () => {
+    const mandatoryExistButNullish = {
+      1: null,
+      2: "hi",
+      3: "hi",
+    };
+    expect(missingMandatoryFields(["1", "2", "3"], mandatoryExistButNullish)).toBe(true);
+  });
+  it("returns false if at least 1 mandatory field is empty string", async () => {
+    const mandatoryExistButEmptyString = {
+      1: "",
+      2: "hi",
+      3: "hi",
+    };
+    expect(missingMandatoryFields(["1", "2", "3"], mandatoryExistButEmptyString)).toBe(true);
+  });
+  it("returns false if at least 1 mandatory field is undefined", async () => {
+    const mandatoryExistButEmptyString = {
+      2: "hi",
+      3: "hi",
+    };
+    expect(missingMandatoryFields(["1", "2", "3"], mandatoryExistButEmptyString)).toBe(true);
   });
 });

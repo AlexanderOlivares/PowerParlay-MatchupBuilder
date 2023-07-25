@@ -2,9 +2,10 @@ import axios, { AxiosError } from "axios";
 import moment from "moment";
 import "moment-timezone";
 import logger from "../winstonLogger.ts";
+import { log } from "console";
 
 const BASE_URL = process.env.BASE_URL;
-const TZ = process.env.TZ;
+const API_KEY = process.env.API_KEY;
 const WORKFLOW_DAY_OFFSET = process.env.DAY_OFFSET;
 const WORKFLOW_START_DATE = process.env.START_DATE;
 
@@ -31,15 +32,17 @@ export function getUpcomingWeekDates(
   return Array.from({ length: WEEK_LENGTH }, (_, i) => {
     return moment(startDate)
       .add(i + dayOffset, "days")
-      .format("YYYYMMDD");
+      .format("YYYY-MM-DD");
   });
 }
 
-export function promiseDotAll(dates: string[], sport: string) {
+export function promiseDotAll(dates: string[], league: string) {
   return dates.map(async date => {
     try {
-      const { data } = await axios.get(`${BASE_URL}${sport}?dates=${date}&tz=${TZ}`);
-      return data;
+      const { data } = await axios.get(
+        `${BASE_URL}/v1/json/${API_KEY}/eventsday.php?d=${date}&l=${league}`
+      );
+      return data.events;
     } catch (error) {
       if (axios.isAxiosError(error)) {
         const axiosError = error as AxiosError;
@@ -58,5 +61,19 @@ export function promiseDotAll(dates: string[], sport: string) {
       logger.warn({ message: "Error caught and returned { error: true }" });
       return { error: true };
     }
+  });
+}
+
+interface TargetObject {
+  [key: string]: any;
+}
+
+export function missingMandatoryFields(mandatoryFields: string[], target: TargetObject) {
+  return mandatoryFields.some((field: keyof TargetObject) => {
+    const falsyField = !Boolean(target[field]);
+    if (falsyField) {
+      logger.warn({ message: "Missing mandatory fields", missingField: field });
+    }
+    return falsyField;
   });
 }

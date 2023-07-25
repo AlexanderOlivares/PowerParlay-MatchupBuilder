@@ -4,22 +4,25 @@ import { WinstonTransport as AxiomTransport } from "@axiomhq/axiom-node";
 
 dotenv.config();
 
-const axiomTransport = new AxiomTransport({});
+const transports = [];
 
-const logger = winston.createLogger({
-  level: "http",
-  format: winston.format.json(),
-  transports: [axiomTransport],
-  exceptionHandlers: [axiomTransport],
-  rejectionHandlers: [axiomTransport],
-});
-
-if (process.env.NODE_ENV !== "production") {
-  logger.add(
+if (process.env.NODE_ENV === "production") {
+  const axiomTransport = new AxiomTransport({});
+  transports.push(axiomTransport);
+} else {
+  transports.push(
     new winston.transports.Console({
       format: winston.format.json(),
     })
   );
 }
+
+const logger = winston.createLogger({
+  level: "http",
+  format: winston.format.json(),
+  transports: transports,
+  exceptionHandlers: transports,
+  rejectionHandlers: transports,
+});
 
 export default logger;

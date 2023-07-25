@@ -4,67 +4,103 @@ import "moment-timezone";
 import { v4 as uuidv4 } from "uuid";
 import { PrismaClient } from "@prisma/client";
 import logger from "./winstonLogger.ts";
-import { getUpcomingWeekDates, promiseDotAll } from "./utils/matchupFinderUtils.ts";
+import {
+  getUpcomingWeekDates,
+  missingMandatoryFields,
+  promiseDotAll,
+} from "./utils/matchupFinderUtils.ts";
+import { leagueLookup } from "./utils/leagueMap.ts";
 
 dotenv.config();
 
 const prisma = new PrismaClient();
 
-const MLB = process.env.MLB as string;
-const MLS = process.env.MLS as string;
-
 const upcomingWeekDates = getUpcomingWeekDates();
 
-const buildSportRequests = [MLB, MLS].flatMap(sport => {
-  return promiseDotAll(upcomingWeekDates, sport);
+const buildSportRequests = Object.values(leagueLookup).flatMap(league => {
+  return promiseDotAll(upcomingWeekDates, league);
 });
 
-const sportsData = await Promise.all(buildSportRequests);
+const leagueMatches = await Promise.all(buildSportRequests);
 
-// TODO update with other soccer leagues
+const SOCCER_LEAGUES = ["4346", "4328", "4331", "4335", "4334", "4332", "4480", "4481"];
+
 function isDrawEligible(league: string) {
-  return ["MLS"].includes(league);
+  return SOCCER_LEAGUES.includes(league);
 }
 
 interface IPotentialMatchup {
   id: string;
-  eventId: string;
-  gameDate: string;
-  gameTime: string;
-  name: string;
-  league: string;
-  gameStatus: string;
+  idEvent: string;
+  idHomeTeam: string;
+  idAwayTeam: string;
+  idLeague: string;
+  strLeague: string;
+  strEvent: string;
+  strHomeTeam: string;
+  strAwayTeam: string;
+  strTimestamp: string;
+  strThumb: string;
   drawEligible: boolean;
 }
 
 const formattedMatchups: IPotentialMatchup[] = [];
 
-for (const sport of sportsData) {
-  if (sport.error) continue;
+const mandatoryFields = [
+  "idEvent",
+  "idHomeTeam",
+  "idAwayTeam",
+  "idLeague",
+  "strLeague",
+  "strEvent",
+  "strHomeTeam",
+  "strAwayTeam",
+  "strTimestamp",
+  "strThumb",
+];
 
-  const league = sport?.leagues?.[0].abbreviation ?? "";
-  const events = sport?.events ?? [];
-  if (!league || !events.length) continue;
+for (const league of leagueMatches) {
+  if (!league || league.error) continue;
 
-  for (const event of sport.events) {
+  for (const event of league) {
+    const isMissingFields = missingMandatoryFields(mandatoryFields, event);
+    if (isMissingFields) continue;
+
+    const {
+      idEvent,
+      idHomeTeam,
+      idAwayTeam,
+      idLeague,
+      strLeague,
+      strEvent,
+      strHomeTeam,
+      strAwayTeam,
+      strTimestamp,
+      strThumb,
+    } = event;
+
     // make sure event falls within the valid week window
-    const gameDate = moment.utc(event.date).tz("America/Los_Angeles").format("YYYYMMDD");
+    const gameDate = moment.utc(strTimestamp).tz("America/Los_Angeles").format("YYYY-MM-DD");
     if (!upcomingWeekDates.includes(gameDate)) {
-      logger.warn({ message: "Game date not in upcoming week", anomalyData: { gameDate, event } });
+      logger.warn({
+        message: "Game date not in upcoming week",
+        anomalyData: { gameDate, idEvent, strTimestamp },
+      });
       continue;
     }
 
-    const { name: gameStatus } = event.status.type;
-    if (gameStatus !== "STATUS_SCHEDULED") continue;
-
     const matchup: IPotentialMatchup = {
       id: uuidv4(),
-      eventId: event.id,
-      gameTime: event.date,
-      name: event.name,
-      gameDate,
-      league,
-      gameStatus,
+      idEvent,
+      idHomeTeam,
+      idAwayTeam,
+      idLeague,
+      strLeague,
+      strEvent,
+      strHomeTeam,
+      strAwayTeam,
+      strTimestamp,
+      strThumb,
       drawEligible: isDrawEligible(league),
     };
 
@@ -72,25 +108,32 @@ for (const sport of sportsData) {
   }
 }
 
-const existingMatchups = await prisma.potentialMatchup.findMany({
+const existingDbMatchups = await prisma.potentialMatchup.findMany({
   where: {
-    gameDate: {
-      in: upcomingWeekDates,
+    idEvent: {
+      in: formattedMatchups.map(({ idEvent }) => idEvent),
     },
   },
   select: {
-    eventId: true,
+    idEvent: true,
   },
 });
 
-const existingDbEventIds = existingMatchups.map(({ eventId }) => eventId);
+if (existingDbMatchups?.length) {
+  logger.warn({
+    message: "Duplicate games in result set",
+    duplicateCount: existingDbMatchups.length,
+  });
+}
 
-const deDupedMatchups = formattedMatchups.filter(
-  ({ eventId }) => !existingDbEventIds.includes(eventId)
+const existingDbEventIds = existingDbMatchups.map(({ idEvent }) => idEvent);
+
+const dedupedMatchups = formattedMatchups.filter(
+  ({ idEvent }) => !existingDbEventIds.includes(idEvent)
 );
 
 const insertCount = await prisma.potentialMatchup.createMany({
-  data: deDupedMatchups,
+  data: dedupedMatchups,
 });
 
 logger.info({ message: `${insertCount.count} potential matchups added` });

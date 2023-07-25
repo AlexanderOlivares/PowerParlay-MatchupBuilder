@@ -1,0 +1,17 @@
+export const leagueLookup = {
+  MLB: "4424",
+  MLS: "4346",
+  // EPL: "4328",
+  // Bundesliga: "4331",
+  // LaLiga: "4335",
+  // Ligue1: "4334",
+  // SerieA: "4332",
+  // ChampionsLeague: "4480",
+  // EuropaLeague: "4481",
+  // NFL: "4391",
+  // NCAA: "4479",
+  // NBA: "4387",
+  WNBA: "4516",
+  // NCAAM: "4607",
+  // NHL: "4380",
+};
