@@ -24,6 +24,7 @@ model PotentialMatchup {
   adminUseGame      Boolean?
   adminUseMoneyline Boolean?
   adminUseOverUnder Boolean?
+  adminUseSpread    Boolean?
   adminUseHomeDraw  Boolean?
   adminUseAwayDraw  Boolean?
 }
