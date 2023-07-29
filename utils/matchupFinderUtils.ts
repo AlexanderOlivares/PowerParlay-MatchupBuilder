@@ -2,7 +2,6 @@ import axios, { AxiosError } from "axios";
 import moment from "moment";
 import "moment-timezone";
 import logger from "../winstonLogger.ts";
-import { log } from "console";
 
 const BASE_URL = process.env.BASE_URL;
 const API_KEY = process.env.API_KEY;
@@ -28,7 +27,8 @@ export function getUpcomingWeekDates(
   startDate: moment.Moment = getWorkflowStartDate(WORKFLOW_START_DATE),
   dayOffset: number = getWorkflowDayOffset(WORKFLOW_DAY_OFFSET)
 ) {
-  const WEEK_LENGTH = 7;
+  // Week is 8 days to capture the PM games on the 7th day that start "tomorrow" in UTC time
+  const WEEK_LENGTH = 8;
   return Array.from({ length: WEEK_LENGTH }, (_, i) => {
     return moment(startDate)
       .add(i + dayOffset, "days")

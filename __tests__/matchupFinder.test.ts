@@ -15,9 +15,10 @@ describe("getUpcomingWeekDates", () => {
     moment.now = () => Date.now();
   });
 
-  const WEEK_LENGTH = 7;
+  // Week is 8 days to capture the PM games on the 7th day that start "tomorrow" in UTC time
+  const WEEK_LENGTH = 8;
 
-  test("returns 7 dates", () => {
+  test("returns 8 dates", () => {
     const dates = getUpcomingWeekDates();
 
     expect(dates.length).toEqual(WEEK_LENGTH);
@@ -60,6 +61,7 @@ describe("getUpcomingWeekDates", () => {
       "2023-03-04",
       "2023-03-05",
       "2023-03-06",
+      "2023-03-07",
     ]);
   });
 
