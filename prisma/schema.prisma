@@ -28,3 +28,33 @@ model PotentialMatchup {
   adminUseHomeDraw  Boolean?
   adminUseAwayDraw  Boolean?
 }
+
+model Matchup {
+  id             String  @id @unique @default(uuid())
+  drawEligible   Boolean
+  idEvent        String
+  idHomeTeam     String
+  idAwayTeam     String
+  idLeague       String
+  strEvent       String
+  strLeague      String
+  strHomeTeam    String
+  strAwayTeam    String
+  strTimestamp   String
+  strThumb       String
+  adminSelected  Boolean
+  oddsGameId     String
+  homeOdds       String
+  awayOdds       String
+  drawOdds       String?
+  lastOddsUpdate String
+  oddsHistory    Json
+  oddsType       String
+  oddsScope      String
+  result         String
+  locked         Boolean
+  adminUnlocked  Boolean
+  adminCorrected Boolean
+  homeSelected   Int
+  awaySelected   Int
+}

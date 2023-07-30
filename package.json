@@ -9,7 +9,7 @@
     "@types/pg": "^8.10.2",
     "@types/uuid": "^9.0.2",
     "bun-types": "latest",
-    "prisma": "^4.16.2",
+    "prisma": "^5.0.0",
     "typescript": "^5.0.0"
   },
   "dependencies": {

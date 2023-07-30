@@ -10,6 +10,7 @@ import {
   promiseDotAll,
 } from "./utils/matchupFinderUtils.ts";
 import { leagueLookup } from "./utils/leagueMap.ts";
+import { PotentialMatchup } from "./interfaces/matchup.ts";
 
 dotenv.config();
 
@@ -29,22 +30,7 @@ function isDrawEligible(league: string) {
   return SOCCER_LEAGUES.includes(league);
 }
 
-interface IPotentialMatchup {
-  id: string;
-  idEvent: string;
-  idHomeTeam: string;
-  idAwayTeam: string;
-  idLeague: string;
-  strLeague: string;
-  strEvent: string;
-  strHomeTeam: string;
-  strAwayTeam: string;
-  strTimestamp: string;
-  strThumb: string;
-  drawEligible: boolean;
-}
-
-const formattedMatchups: IPotentialMatchup[] = [];
+const formattedMatchups: PotentialMatchup[] = [];
 
 const mandatoryFields = [
   "idEvent",
@@ -89,7 +75,7 @@ for (const league of leagueMatches) {
       continue;
     }
 
-    const matchup: IPotentialMatchup = {
+    const matchup: PotentialMatchup = {
       id: uuidv4(),
       idEvent,
       idHomeTeam,
