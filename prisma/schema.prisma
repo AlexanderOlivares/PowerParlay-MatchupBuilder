@@ -9,24 +9,22 @@ datasource db {
 }
 
 model PotentialMatchup {
-  id                String   @id @unique @default(uuid())
-  drawEligible      Boolean
-  idEvent           String
-  idHomeTeam        String
-  idAwayTeam        String
-  idLeague          String
-  strEvent          String
-  strLeague         String
-  strHomeTeam       String
-  strAwayTeam       String
-  strTimestamp      String
-  strThumb          String
-  adminUseGame      Boolean?
-  adminUseMoneyline Boolean?
-  adminUseOverUnder Boolean?
-  adminUseSpread    Boolean?
-  adminUseHomeDraw  Boolean?
-  adminUseAwayDraw  Boolean?
+  id           String   @id @unique @default(uuid())
+  drawEligible Boolean
+  idEvent      String
+  idHomeTeam   String
+  idAwayTeam   String
+  idLeague     String
+  strEvent     String
+  strLeague    String
+  strHomeTeam  String
+  strAwayTeam  String
+  strTimestamp String
+  strThumb     String
+  oddsType     String
+  oddsScope    String
+  drawTeam     String?
+  adminUseGame Boolean?
 }
 
 model Matchup {
