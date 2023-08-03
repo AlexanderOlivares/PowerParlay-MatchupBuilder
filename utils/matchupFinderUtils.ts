@@ -2,9 +2,8 @@ import axios, { AxiosError } from "axios";
 import moment from "moment";
 import "moment-timezone";
 import logger from "../winstonLogger.ts";
+import { GenericError } from "../interfaces/matchup.ts";
 
-const BASE_URL = process.env.BASE_URL;
-const API_KEY = process.env.API_KEY;
 const WORKFLOW_DAY_OFFSET = process.env.DAY_OFFSET;
 const WORKFLOW_START_DATE = process.env.START_DATE;
 
@@ -36,34 +35,6 @@ export function getUpcomingWeekDates(
   });
 }
 
-export function promiseDotAll(dates: string[], league: string) {
-  return dates.map(async date => {
-    try {
-      const { data } = await axios.get(
-        `${BASE_URL}/v1/json/${API_KEY}/eventsday.php?d=${date}&l=${league}`
-      );
-      return data.events;
-    } catch (error) {
-      if (axios.isAxiosError(error)) {
-        const axiosError = error as AxiosError;
-        if (axiosError.response) {
-          logger.error({ message: axiosError.response });
-        } else if (axiosError.request) {
-          logger.error({ message: axiosError.request });
-        } else {
-          logger.error({ message: axiosError });
-        }
-      } else if (error instanceof Error) {
-        logger.error({ message: error.message });
-      } else {
-        logger.error({ unknownError: true, message: error });
-      }
-      logger.warn({ message: "Error caught and returned { error: true }" });
-      return { error: true };
-    }
-  });
-}
-
 interface TargetObject {
   [key: string]: any;
 }
@@ -76,4 +47,23 @@ export function missingMandatoryFields(mandatoryFields: string[], target: Target
     }
     return falsyField;
   });
+}
+
+export function handleNetworkError(error: any): GenericError {
+  if (axios.isAxiosError(error)) {
+    const axiosError = error as AxiosError;
+    if (axiosError.response) {
+      logger.error({ message: axiosError.response });
+    } else if (axiosError.request) {
+      logger.error({ message: axiosError.request });
+    } else {
+      logger.error({ message: axiosError });
+    }
+  } else if (error instanceof Error) {
+    logger.error({ message: error.message });
+  } else {
+    logger.error({ unknownError: true, message: error });
+  }
+  logger.warn({ message: "Error caught and returned { error: true }", error });
+  return { genericError: true };
 }

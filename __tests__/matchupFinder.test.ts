@@ -1,14 +1,15 @@
-import axios from "axios";
+import axios, { AxiosError } from "axios";
 import moment from "moment";
 import "moment-timezone";
 import {
   getUpcomingWeekDates,
   getWorkflowDayOffset,
   getWorkflowStartDate,
+  handleNetworkError,
   missingMandatoryFields,
-  promiseDotAll,
 } from "../utils/matchupFinderUtils";
 import { leagueLookup } from "../utils/leagueMap";
+import logger from "../winstonLogger";
 
 describe("getUpcomingWeekDates", () => {
   afterEach(() => {
@@ -101,33 +102,17 @@ beforeEach(() => {
   vi.mock("axios");
   axios.get = vi.fn();
   (axios.get as any).mockReset();
+  vi.spyOn(logger, "error");
+  vi.spyOn(logger, "warn");
 });
 
-describe("promiseDotAll", () => {
-  it("makes requests for each date", async () => {
-    const dates = ["2023-01-01", "2023-01-02"];
-
-    (axios.get as any).mockResolvedValue({ data: "mock data" });
-
-    promiseDotAll(dates, "4424");
-
-    expect(axios.get).toHaveBeenCalledTimes(2);
-    expect(axios.get).toHaveBeenCalledWith(
-      `${process.env.BASE_URL}/v1/json/${process.env.API_KEY}/eventsday.php?d=${dates[0]}&l=4424`
-    );
-    expect(axios.get).toHaveBeenCalledWith(
-      `${process.env.BASE_URL}/v1/json/${process.env.API_KEY}/eventsday.php?d=${dates[1]}&l=4424`
-    );
-  });
-
-  it("returns error object if axios request fails", async () => {
+describe("handleNetworkError", () => {
+  it("returns generic error object if axios request fails", async () => {
     (axios.get as any).mockRejectedValue(new Error("Network error"));
 
-    const result = promiseDotAll(["2023-01-01"], "MLS");
-    const promise = result[0];
-
-    expect(axios.get).toHaveBeenCalledTimes(1);
-    await expect(promise).resolves.toEqual({ error: true });
+    expect(handleNetworkError(axios.get)).toEqual({ genericError: true });
+    expect(logger.warn).toHaveBeenCalledOnce();
+    expect(logger.error).toHaveBeenCalledOnce();
   });
 });
 
