@@ -10,7 +10,7 @@ import {
   missingMandatoryFields,
 } from "./utils/matchupFinderUtils.ts";
 import { leagueLookup } from "./utils/leagueMap.ts";
-import { EventData, GenericError, PotentialMatchup, isGenericError } from "./interfaces/matchup.ts";
+import { EventData, GenericError, Matchup, isGenericError } from "./interfaces/matchup.ts";
 import axios from "axios";
 
 dotenv.config();
@@ -36,7 +36,6 @@ const buildSportRequests = Object.keys(leagueLookup).flatMap(league => {
       }
     }
   );
-
   return response;
 });
 
@@ -50,7 +49,7 @@ function isDrawEligible(league: string) {
   return SOCCER_LEAGUES.includes(league);
 }
 
-const formattedMatchups: PotentialMatchup[] = [];
+const formattedMatchups: Matchup[] = [];
 
 const mandatoryFields = [
   "idEvent",
@@ -93,7 +92,7 @@ for (const event of leagueEvents) {
     continue;
   }
 
-  const matchup: PotentialMatchup = {
+  const matchup: Matchup = {
     id: uuidv4(),
     idEvent,
     idHomeTeam,
@@ -108,22 +107,27 @@ for (const event of leagueEvents) {
     oddsType: "money-line",
     oddsScope: "full-game",
     drawEligible: isDrawEligible(idLeague),
+    adminSelected: false,
+    used: false,
+    result: "NS",
+    locked: false,
+    adminUnlocked: false,
+    adminCorrected: false,
   };
 
   formattedMatchups.push(matchup);
 }
 
-const existingDbMatchups: Pick<PotentialMatchup, "idEvent">[] =
-  await prisma.potentialMatchup.findMany({
-    where: {
-      idEvent: {
-        in: formattedMatchups.map(({ idEvent }) => idEvent),
-      },
+const existingDbMatchups: Pick<Matchup, "idEvent">[] = await prisma.matchups.findMany({
+  where: {
+    idEvent: {
+      in: formattedMatchups.map(({ idEvent }) => idEvent),
     },
-    select: {
-      idEvent: true,
-    },
-  });
+  },
+  select: {
+    idEvent: true,
+  },
+});
 
 if (existingDbMatchups?.length) {
   logger.warn({
@@ -138,7 +142,7 @@ const dedupedMatchups = formattedMatchups.filter(
   ({ idEvent }) => !existingDbEventIds.includes(idEvent)
 );
 
-const insertCount = await prisma.potentialMatchup.createMany({
+const insertCount = await prisma.matchups.createMany({
   data: dedupedMatchups,
 });
 

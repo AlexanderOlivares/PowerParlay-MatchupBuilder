@@ -7,7 +7,8 @@ type OddsScope =
   | "2nd-quarter"
   | "3rd-quarter"
   | "4th-quarter";
-export interface PotentialMatchup {
+
+export interface Matchup {
   id: string;
   idEvent: string;
   idHomeTeam: string;
@@ -22,24 +23,29 @@ export interface PotentialMatchup {
   drawEligible: boolean;
   oddsType: OddsType;
   oddsScope: OddsScope;
-}
-
-export interface Matchup extends PotentialMatchup {
+  drawTeam?: string;
   adminSelected: boolean;
-  oddsGameId: string;
-  homeOdds: string;
-  awayOdds: string;
-  drawOdds: string | null;
-  lastOddsUpdate: string;
-  oddsHistory: string; // need to parse this is json
-  oddsType: OddsType;
-  oddsScope: OddsScope;
-  result: string;
+  used: boolean;
+  result: string; // need some system for this
   locked: boolean;
   adminUnlocked: boolean;
   adminCorrected: boolean;
-  homeSelected: number;
-  awaySelected: number;
+}
+
+export interface Odds {
+  id: string;
+  matchupId: string;
+  oddsGameId: number;
+  sportsbook: string;
+  homeOdds?: number;
+  awayOdds?: number;
+  drawOdds?: string;
+  overOdds?: string;
+  underOdds?: string;
+  homeSpread?: number;
+  awaySpread?: number;
+  total?: number;
+  lastUpdate: String; // date string
 }
 
 export interface GenericError {
@@ -97,4 +103,88 @@ export interface EventData {
   strStatus: string;
   strPostponed: string;
   strLocked: string;
+}
+
+export interface GameView {
+  gameId: number;
+  leagueName: string;
+  startDate: string;
+  awayTeam: {
+    name: string;
+    fullName: string;
+    shortName: string;
+    displayName: string;
+    nickname: string;
+    rank: number;
+  };
+  awayTeamRotationNumber: string | null;
+  awayStarter: {
+    firstName: string;
+    lastName: string;
+    throwsShort: string;
+    firstInitial: string;
+  } | null;
+  awayTeamScore: number;
+  homeTeam: {
+    name: string;
+    fullName: string;
+    shortName: string;
+    displayName: string;
+    nickname: string;
+    rank: number;
+  };
+  homeStarter: {
+    firstName: string;
+    lastName: string;
+    throwsShort: string;
+    firstInitial: string;
+  } | null;
+  homeTeamRotationNumber: string | null;
+  homeTeamScore: number;
+  gameStatusText: string;
+  status: string;
+  venueName: string;
+  city: string;
+  state: string;
+  country: string;
+  consensus: {
+    homeMoneyLinePickPercent: number;
+    awayMoneyLinePickPercent: number;
+    homeSpreadPickPercent: number;
+    awaySpreadPickPercent: number;
+    overPickPercent: number;
+    underPickPercent: number;
+  } | null;
+}
+
+export interface OddsView {
+  gameId: number;
+  sportsbook: string;
+  sportsbookId: number | null;
+  viewType: string;
+  openingLine: {
+    odds: number | null;
+    homeOdds: number | null;
+    awayOdds: number | null;
+    overOdds: number | null;
+    underOdds: number | null;
+    drawOdds: number | null;
+    homeSpread: number | null;
+    awaySpread: number | null;
+    total: number | null;
+  };
+  currentLine: {
+    odds: number | null;
+    homeOdds: number | null;
+    awayOdds: number | null;
+    overOdds: number | null;
+    underOdds: number | null;
+    drawOdds: number | null;
+    homeSpread: number | null;
+    awaySpread: number | null;
+    total: number | null;
+  };
+  moneyLineHistory: any; // TODO update type
+  spreadHistory: any; // TODO update type
+  totalHistory: any; // TODO update type
 }
