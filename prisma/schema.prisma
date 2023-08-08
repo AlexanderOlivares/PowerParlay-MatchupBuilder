@@ -40,9 +40,9 @@ model Odds {
   sportsbook String
   homeOdds   Int?
   awayOdds   Int?
-  drawOdds   String?
-  overOdds   String?
-  underOdds  String?
+  drawOdds   Int?
+  overOdds   Int?
+  underOdds  Int?
   homeSpread Decimal?
   awaySpread Decimal?
   total      Decimal?

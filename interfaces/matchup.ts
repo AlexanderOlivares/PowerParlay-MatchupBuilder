@@ -37,15 +37,15 @@ export interface Odds {
   matchupId: string;
   oddsGameId: number;
   sportsbook: string;
-  homeOdds?: number;
-  awayOdds?: number;
-  drawOdds?: string;
-  overOdds?: string;
-  underOdds?: string;
-  homeSpread?: number;
-  awaySpread?: number;
-  total?: number;
-  lastUpdate: String; // date string
+  homeOdds?: number | null;
+  awayOdds?: number | null;
+  drawOdds?: number | null;
+  overOdds?: number | null;
+  underOdds?: number | null;
+  homeSpread?: number | null;
+  awaySpread?: number | null;
+  total?: number | null;
+  lastUpdate: string; // date string
 }
 
 export interface GenericError {
@@ -158,6 +158,7 @@ export interface GameView {
 }
 
 export interface OddsView {
+  [key: string]: any;
   gameId: number;
   sportsbook: string;
   sportsbookId: number | null;
@@ -173,7 +174,9 @@ export interface OddsView {
     awaySpread: number | null;
     total: number | null;
   };
+  // TODO type current line
   currentLine: {
+    [key: string]: number | null;
     odds: number | null;
     homeOdds: number | null;
     awayOdds: number | null;

@@ -50,3 +50,16 @@ export function getLeagueWeightRanges(
 
   return normalizedWeights;
 }
+
+export interface MandatoryOddsFields {
+  [key: string]: string[];
+  "money-line": string[];
+  pointspread: string[];
+  totals: string[];
+}
+
+export const mandatoryOddsFields: MandatoryOddsFields = {
+  "money-line": ["homeOdds", "awayOdds", "drawOdds"],
+  pointspread: ["homeOdds", "awayOdds", "homeSpread", "awaySpread"],
+  totals: ["overOdds", "underOdds", "total"],
+};
