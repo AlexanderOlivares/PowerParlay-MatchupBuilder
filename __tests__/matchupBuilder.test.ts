@@ -1,8 +1,9 @@
+import { OddsView } from "../interfaces/matchup";
 import {
-  StartEnd,
   WeightingModel,
   dayRangeLaTimezone,
   getLeagueWeightRanges,
+  getValidGameOdds,
 } from "../utils/matchupBuilderUtils";
 
 describe("dayRangeLaTimezone", () => {
@@ -70,5 +71,68 @@ describe("getLeagueWeightRanges", () => {
     expect(weightRange.get("4424")).toEqual({ start: 0.577, end: 1 });
     expect(weightRange.get("4335")).toEqual({ start: 0.239, end: 0.577 });
     expect(sumOfRanges).toEqual(1);
+  });
+});
+
+describe("getValidGameOdds function", () => {
+  const moneylineOddsView: OddsView[] = [
+    {
+      gameId: 279233,
+      sportsbook: "somebook",
+      sportsbookId: null,
+      viewType: "n/a",
+      openingLine: {
+        odds: null,
+        homeOdds: -120,
+        awayOdds: 100,
+        overOdds: null,
+        underOdds: null,
+        drawOdds: 0,
+        homeSpread: null,
+        awaySpread: null,
+        total: null,
+      },
+      currentLine: {
+        odds: null,
+        homeOdds: -120,
+        awayOdds: 100,
+        overOdds: null,
+        underOdds: null,
+        drawOdds: 0,
+        homeSpread: null,
+        awaySpread: null,
+        total: null,
+      },
+      moneyLineHistory: null,
+      spreadHistory: null,
+      totalHistory: null,
+    },
+  ];
+  it("should return a valid game odd when all mandatory fields are present", () => {
+    const oddsType = "money-line";
+    const result = getValidGameOdds(moneylineOddsView, oddsType);
+
+    expect(result).toBeDefined();
+    expect(result?.currentLine.homeOdds).toEqual(-120);
+    expect(result?.currentLine.awayOdds).toEqual(100);
+    expect(result?.currentLine.drawOdds).toEqual(0);
+    expect(result?.currentLine.overOdds).toEqual(null);
+    expect(result?.currentLine.underOdds).toEqual(null);
+    expect(result?.currentLine.homeSpread).toEqual(null);
+    expect(result?.currentLine.awaySpread).toEqual(null);
+    expect(result?.currentLine.total).toEqual(null);
+  });
+
+  it("should return undefined when any mandatory field is missing", () => {
+    const totals = getValidGameOdds(moneylineOddsView, "totals");
+    const spread = getValidGameOdds(moneylineOddsView, "totals");
+    expect(totals).toBeUndefined();
+    expect(spread).toBeUndefined();
+  });
+
+  it("should return undefined when oddsType is not recognized", () => {
+    // "pointspread" is the valid oddsType
+    const result = getValidGameOdds(moneylineOddsView, "point-spread");
+    expect(result).toBeUndefined();
   });
 });

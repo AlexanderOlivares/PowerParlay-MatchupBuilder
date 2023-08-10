@@ -2,16 +2,27 @@ import dotenv from "dotenv";
 import moment from "moment";
 import "moment-timezone";
 import { v4 as uuidv4 } from "uuid";
-import { Matchups, PrismaClient } from "@prisma/client";
+import { PrismaClient } from "@prisma/client";
 import logger from "./winstonLogger.ts";
 import { handleNetworkError } from "./utils/matchupFinderUtils.ts";
 import { leagueLookup } from "./utils/leagueMap.ts";
 import {
+  OddsLookup,
   dayRangeLaTimezone,
+  getLeagueFromDistribution,
   getLeagueWeightRanges,
-  mandatoryOddsFields,
+  getValidGameOdds,
+  parseOdds,
 } from "./utils/matchupBuilderUtils.ts";
-import { GameView, GenericError, Odds, OddsView, isGenericError } from "./interfaces/matchup.ts";
+import {
+  GameRows,
+  GameView,
+  GenericError,
+  Matchup,
+  Odds,
+  OddsView,
+  isGenericError,
+} from "./interfaces/matchup.ts";
 import { augustWeightingModel } from "./lib/leagueWeights.ts";
 import axios from "axios";
 
@@ -22,7 +33,7 @@ const prisma = new PrismaClient();
 const now = moment().format("YYYY-MM-DD");
 const dateRanges = dayRangeLaTimezone(now);
 
-const matchups: Matchups[] = await prisma.matchups.findMany({
+const matchups: Matchup[] = await prisma.matchups.findMany({
   where: {
     strTimestamp: dateRanges,
   },
@@ -36,17 +47,15 @@ const matchups: Matchups[] = await prisma.matchups.findMany({
   ],
 });
 
-const matchupsNeeded = 20 - matchups.length;
-
-export type OddsType = "money-line" | "totals" | "pointspread";
-export function isOddsType(value: string): value is OddsType {
+type OddsType = "money-line" | "totals" | "pointspread";
+function isOddsType(value: string): value is OddsType {
   return value === "money-line" || value === "totals" || value === "pointspread";
 }
 
 const todaysLeagueIds = new Set<string>();
 const leagueNameToOddsType = new Map<string, Set<OddsType>>();
 
-matchups.forEach((matchup: Matchups) => {
+matchups.forEach((matchup: Matchup) => {
   const { idLeague, oddsType } = matchup;
 
   if (!isOddsType(oddsType)) return;
@@ -60,11 +69,6 @@ matchups.forEach((matchup: Matchups) => {
 
   leagueNameToOddsType.set(leagueLookup[idLeague], oddsTypeSet);
 });
-
-interface GameRows {
-  gameView: GameView;
-  oddsViews: OddsView[];
-}
 
 interface LinesResponse {
   league: string;
@@ -106,11 +110,6 @@ const linesRequests = [...leagueNameToOddsType.entries()].map(([league, oddsType
 
 const lines = await Promise.all(linesRequests.flat());
 
-interface OddsLookup {
-  [league: string]: {
-    [oddsType: string]: GameRows[];
-  };
-}
 const oddsLookup: OddsLookup = lines.reduce((acc: OddsLookup, { league, oddsType, data }) => {
   if (!data || isGenericError(data)) return acc;
 
@@ -127,24 +126,32 @@ const oddsLookup: OddsLookup = lines.reduce((acc: OddsLookup, { league, oddsType
   return acc;
 }, {});
 
-const maxMatchupCount = Math.min(matchupsNeeded, matchups.length);
+const adminSelectedMatchups: Matchup[] = [];
+const standardMatchups: Matchup[] = [];
+const existingMatchups: Matchup[] = [];
 
-const adminSelectedMatchups = matchups.filter(matchup => matchup.adminSelected);
+matchups.forEach(matchup => {
+  if (matchup.used) {
+    existingMatchups.push(matchup);
+    return;
+  }
+  if (matchup.adminSelected) {
+    adminSelectedMatchups.push(matchup);
+    return;
+  }
+  standardMatchups.push(matchup);
+});
 
-const oddsEntries: Odds[] = [];
+const adminSelectedMatchupOdds: Odds[] = [];
+const adminSelectedMatchupIds: string[] = [];
 
-adminSelectedMatchups.forEach(matchup => {
-  const { id, idLeague, oddsType, strAwayTeam, strHomeTeam } = matchup;
-  const leagueOddsType = oddsLookup[leagueLookup[idLeague]][oddsType];
+adminSelectedMatchups.forEach((matchup: Matchup) => {
+  const { id, idLeague, oddsType } = matchup;
 
-  const gameRow = leagueOddsType.find(
-    game =>
-      game.gameView.awayTeam.fullName === strAwayTeam &&
-      game.gameView.homeTeam.fullName === strHomeTeam
-  );
+  const gameRow = parseOdds(matchup, oddsLookup, leagueLookup);
 
   if (!gameRow) {
-    logger.warn({
+    logger.error({
       message: "No team match in game row",
       anomalyData: { matchupId: id, league: idLeague, oddsType },
     });
@@ -154,19 +161,17 @@ adminSelectedMatchups.forEach(matchup => {
   const { gameView, oddsViews } = gameRow;
 
   if (!gameView || !oddsViews) {
-    logger.warn({
+    logger.error({
       message: "missing game view or odds view",
       anomalyData: { matchupId: id, league: idLeague },
     });
+    return;
   }
 
-  // TODO make this a testable func
-  const gameOdds = oddsViews
-    ?.filter(Boolean)
-    .find(odds => mandatoryOddsFields[oddsType]?.every(field => odds?.currentLine[field]));
+  const gameOdds = getValidGameOdds(oddsViews, oddsType);
 
-  if (!gameOdds) {
-    logger.warn({
+  if (!gameOdds?.currentLine) {
+    logger.error({
       message: "no game odds found",
       anomalyData: { matchupId: id, league: idLeague, oddsType },
     });
@@ -174,7 +179,7 @@ adminSelectedMatchups.forEach(matchup => {
   }
 
   const { homeOdds, awayOdds, drawOdds, overOdds, underOdds, homeSpread, awaySpread, total } =
-    gameOdds?.currentLine;
+    gameOdds.currentLine;
 
   const odds: Odds = {
     id: uuidv4(),
@@ -192,11 +197,173 @@ adminSelectedMatchups.forEach(matchup => {
     lastUpdate: moment.utc().toISOString(),
   };
 
-  oddsEntries.push(odds);
+  adminSelectedMatchupOdds.push(odds);
+  adminSelectedMatchupIds.push(id);
 });
 
-const insertCount = await prisma.odds.createMany({
-  data: oddsEntries,
-});
+const [adminSelectedInserted, adminSelectedMatchupsUpdated] = await prisma.$transaction([
+  prisma.odds.createMany({
+    data: adminSelectedMatchupOdds,
+  }),
+  prisma.matchups.updateMany({
+    where: {
+      id: {
+        in: adminSelectedMatchupIds,
+      },
+    },
+    data: {
+      used: true,
+    },
+  }),
+]);
 
-const leagueWeights = getLeagueWeightRanges([...todaysLeagueIds], augustWeightingModel);
+logger.info(`${adminSelectedInserted.count} odds entries added for admin-selected matchups`);
+logger.info(
+  `${adminSelectedMatchupsUpdated.count} admin-selected matchups updated to 'used' status`
+);
+
+// targeting 20 matchups per day
+const standardMatchupsNeeded = Math.min(
+  20 - existingMatchups.length - adminSelectedInserted.count,
+  standardMatchups.length
+);
+
+/*
+Keeps a count of matchups per league that have NOT been selected and assigned odds. When all games from 
+a league have been selected, the league is deleted from the map so the league weights can be recalculated
+from the map keys that are passed to getLeagueWeightRanges()
+*/
+const unusedMatchupsPerLeague = standardMatchups.reduce((acc: Map<string, number>, cv: Matchup) => {
+  const currentCount = acc.get(cv.idLeague) ?? 0;
+  acc.set(cv.idLeague, currentCount + 1);
+  return acc;
+}, new Map());
+
+const standardMatchupOdds: Odds[] = [];
+const standardMatchupIds: string[] = [];
+const seenMatchupsIds = new Set<string>();
+let errorCount = 0;
+
+while (standardMatchupOdds.length < standardMatchupsNeeded) {
+  // safeguard against infinite while loop
+  if (errorCount > standardMatchupsNeeded) break;
+
+  const leagueWeights = getLeagueWeightRanges(
+    [...unusedMatchupsPerLeague.keys()],
+    augustWeightingModel
+  );
+
+  const league = getLeagueFromDistribution(leagueWeights);
+
+  if (!league) {
+    logger.error({
+      message: "league not in distribution",
+      anomalyData: { leagueWeights: JSON.stringify(leagueWeights) },
+    });
+    errorCount++;
+    continue;
+  }
+
+  const unusedCount = unusedMatchupsPerLeague.get(league);
+  if (!unusedCount || unusedCount < 0) {
+    logger.error({
+      message: "no unused matchups found for league",
+      anomalyData: { league },
+    });
+    errorCount++;
+    continue;
+  }
+
+  const leagueMatchups = standardMatchups.filter(
+    ({ idLeague, id }) => idLeague === league && !seenMatchupsIds.has(id)
+  );
+
+  // pick random game from chosen league
+  const randomIndex = Math.floor(Math.random() * leagueMatchups.length);
+  const matchup = leagueMatchups[randomIndex];
+
+  const { id, idLeague, oddsType } = matchup;
+  seenMatchupsIds.add(id);
+
+  const gameRow = parseOdds(matchup, oddsLookup, leagueLookup);
+
+  if (!gameRow) {
+    logger.error({
+      message: "No team match in game row",
+      anomalyData: { matchupId: id, league: idLeague, oddsType },
+    });
+    errorCount++;
+    continue;
+  }
+
+  const { gameView, oddsViews } = gameRow;
+
+  if (!gameView || !oddsViews) {
+    logger.error({
+      message: "missing game view or odds view",
+      anomalyData: { matchupId: id, league: idLeague },
+    });
+    errorCount++;
+    continue;
+  }
+
+  const gameOdds = getValidGameOdds(oddsViews, oddsType);
+
+  if (!gameOdds?.currentLine) {
+    logger.error({
+      message: "no game odds found",
+      anomalyData: { matchupId: id, league: idLeague, oddsType },
+    });
+    errorCount++;
+    continue;
+  }
+
+  const { homeOdds, awayOdds, drawOdds, overOdds, underOdds, homeSpread, awaySpread, total } =
+    gameOdds.currentLine;
+
+  const odds: Odds = {
+    id: uuidv4(),
+    matchupId: id,
+    oddsGameId: gameOdds.gameId,
+    sportsbook: gameOdds.sportsbook,
+    homeOdds,
+    awayOdds,
+    drawOdds,
+    overOdds,
+    underOdds,
+    homeSpread,
+    awaySpread,
+    total,
+    lastUpdate: moment.utc().toISOString(),
+  };
+
+  standardMatchupOdds.push(odds);
+  standardMatchupIds.push(id);
+
+  if (unusedCount <= 1) {
+    unusedMatchupsPerLeague.delete(league);
+  } else {
+    unusedMatchupsPerLeague.set(league, unusedCount - 1);
+  }
+}
+
+const [standardMatchupOddsInserted, standardMatchupsUpdated] = await prisma.$transaction([
+  prisma.odds.createMany({
+    data: standardMatchupOdds,
+  }),
+  prisma.matchups.updateMany({
+    where: {
+      id: {
+        in: standardMatchupIds,
+      },
+    },
+    data: {
+      used: true,
+    },
+  }),
+]);
+
+logger.info(`${standardMatchupOddsInserted.count} odds entries added for standard matchups`);
+logger.info(`${standardMatchupsUpdated.count} standard matchups updated to 'used' status`);
+
+await prisma.$disconnect();

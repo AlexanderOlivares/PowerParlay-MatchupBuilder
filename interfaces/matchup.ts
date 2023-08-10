@@ -21,9 +21,9 @@ export interface Matchup {
   strTimestamp: string;
   strThumb: string;
   drawEligible: boolean;
-  oddsType: OddsType;
-  oddsScope: OddsScope;
-  drawTeam?: string;
+  oddsType: string;
+  oddsScope: string;
+  drawTeam?: string | null;
   adminSelected: boolean;
   used: boolean;
   result: string; // need some system for this
@@ -190,4 +190,9 @@ export interface OddsView {
   moneyLineHistory: any; // TODO update type
   spreadHistory: any; // TODO update type
   totalHistory: any; // TODO update type
+}
+
+export interface GameRows {
+  gameView: GameView;
+  oddsViews: OddsView[];
 }
