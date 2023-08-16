@@ -1,18 +1,9 @@
-name: Run matchup finder
+name: Run matchup builder
 
 on:
   workflow_dispatch:
-    inputs:
-      START_DATE:
-        description: "Initial date in format YYYY-MM-DD that the DAY_OFFSET will reference"
-        required: false
-        type: string
-      DAY_OFFSET:
-        description: "Number of days after START_DATE to start looking for matchups"
-        required: false
-        type: number
   schedule:
-    - cron: "0 11 * * 0" # Run at 11 AM every Sunday
+    - cron: "0 5,17 * * *" # Run at 5am and 5pm every day
 
 jobs:
   build:
@@ -40,8 +31,5 @@ jobs:
           AXIOM_ORG_ID: ${{ secrets.AXIOM_ORG_ID }}
           AXIOM_TOKEN: ${{ secrets.AXIOM_TOKEN }}
           NODE_ENV: ${{ secrets.NODE_ENV }}
-          SPORTS_BASE_URL: ${{ secrets.SPORTS_BASE_URL }}
-          API_KEY: ${{ secrets.API_KEY }}
-          START_DATE: ${{ inputs.START_DATE }}
-          DAY_OFFSET: ${{ inputs.DAY_OFFSET }}
-        run: ts-node matchupFinder.ts
+          LINES_BASE_URL: ${{ secrets.LINES_BASE_URL }}
+        run: ts-node matchupBuilder.ts
