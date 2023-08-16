@@ -246,7 +246,10 @@ let errorCount = 0;
 
 while (standardMatchupOdds.length < standardMatchupsNeeded) {
   // safeguard against infinite while loop
-  if (errorCount > standardMatchupsNeeded) break;
+  if (errorCount > standardMatchupsNeeded) {
+    logger.error({ message: "forcefully terminated while loop", errorCount });
+    break;
+  }
 
   const leagueWeights = getLeagueWeightRanges(
     [...unusedMatchupsPerLeague.keys()],
@@ -256,7 +259,7 @@ while (standardMatchupOdds.length < standardMatchupsNeeded) {
   const league = getLeagueFromDistribution(leagueWeights);
 
   if (!league) {
-    logger.error({
+    logger.warn({
       message: "league not in distribution",
       anomalyData: { leagueWeights: JSON.stringify(leagueWeights) },
     });
@@ -266,7 +269,7 @@ while (standardMatchupOdds.length < standardMatchupsNeeded) {
 
   const unusedCount = unusedMatchupsPerLeague.get(league);
   if (!unusedCount || unusedCount < 0) {
-    logger.error({
+    logger.warn({
       message: "no unused matchups found for league",
       anomalyData: { league },
     });
@@ -278,6 +281,15 @@ while (standardMatchupOdds.length < standardMatchupsNeeded) {
     ({ idLeague, id }) => idLeague === league && !seenMatchupsIds.has(id)
   );
 
+  if (!leagueMatchups.length) {
+    logger.warn({
+      message: `no odds yet for remaining games in league ${league}`,
+      anomalyData: { league },
+    });
+    errorCount++;
+    continue;
+  }
+
   // pick random game from chosen league
   const randomIndex = Math.floor(Math.random() * leagueMatchups.length);
   const matchup = leagueMatchups[randomIndex];
@@ -288,7 +300,7 @@ while (standardMatchupOdds.length < standardMatchupsNeeded) {
   const gameRow = parseOdds(matchup, oddsLookup, leagueLookup);
 
   if (!gameRow) {
-    logger.error({
+    logger.warn({
       message: "No team match in game row",
       anomalyData: { matchupId: id, league: idLeague, oddsType },
     });
