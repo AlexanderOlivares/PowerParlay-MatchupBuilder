@@ -30,8 +30,9 @@ dotenv.config();
 
 const prisma = new PrismaClient();
 
-const now = moment().format("YYYY-MM-DD");
-const dateRanges = dayRangeLaTimezone(now);
+const daysInFuture = Number(process.env.ODDS_DAY_OFFSET) || 0;
+const targetDate = moment().add(daysInFuture, "day").format("YYYY-MM-DD");
+const dateRanges = dayRangeLaTimezone(targetDate);
 
 const matchups: Matchup[] = await prisma.matchups.findMany({
   where: {
@@ -82,7 +83,7 @@ const linesRequests = [...leagueNameToOddsType.entries()].map(([league, oddsType
   const responses: Promise<LinesResponse>[] = [...oddsTypes].map(async oddsType => {
     try {
       const { data } = await axios.get(
-        `${process.env.LINES_BASE_URL}/${league}/${oddsType}/${oddsScope}.json?date=${now}`
+        `${process.env.LINES_BASE_URL}/${league}/${oddsType}/${oddsScope}.json?date=${targetDate}`
       );
       const gameData = data?.pageProps?.oddsTables?.[0]?.oddsTableModel?.gameRows ?? null;
 

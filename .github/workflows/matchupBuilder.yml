@@ -2,8 +2,13 @@ name: Run matchup builder
 
 on:
   workflow_dispatch:
+    inputs:
+      ODDS_DAY_OFFSET:
+        description: "Days in the future to fetch odds. Today is 0 and defualts to 1"
+        required: false
+        type: string
   schedule:
-    - cron: "0 5,17 * * *" # Run at 5am and 5pm every day
+    - cron: "0 1-14/4 * * *" # Every 4 hours between 1am and 2pm UTC
 
 jobs:
   build:
@@ -32,4 +37,5 @@ jobs:
           AXIOM_TOKEN: ${{ secrets.AXIOM_TOKEN }}
           NODE_ENV: ${{ secrets.NODE_ENV }}
           LINES_BASE_URL: ${{ secrets.LINES_BASE_URL }}
+          ODDS_DAY_OFFSET: ${{ inputs.ODDS_DAY_OFFSET}}
         run: ts-node matchupBuilder.ts
