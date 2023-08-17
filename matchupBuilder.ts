@@ -25,10 +25,16 @@ import {
 } from "./interfaces/matchup.ts";
 import { augustWeightingModel } from "./lib/leagueWeights.ts";
 import axios from "axios";
+import Queue from "bull";
 
 dotenv.config();
 
 const prisma = new PrismaClient();
+const queue = new Queue("oddsQueue", process.env.REDIS_HOST!);
+
+queue.on("error", error => {
+  logger.error({ message: "error adding to oddsQueue", error });
+});
 
 const daysInFuture = Number(process.env.ODDS_DAY_OFFSET) || 0;
 const targetDate = moment().add(daysInFuture, "day").format("YYYY-MM-DD");
@@ -223,6 +229,10 @@ logger.info(
   `${adminSelectedMatchupsUpdated.count} admin-selected matchups updated to 'used' status`
 );
 
+for (const id of adminSelectedMatchupIds) {
+  await queue.add({ id });
+}
+
 // targeting 20 matchups per day
 const standardMatchupsNeeded = Math.min(
   20 - existingMatchups.length - adminSelectedInserted.count,
@@ -379,4 +389,9 @@ const [standardMatchupOddsInserted, standardMatchupsUpdated] = await prisma.$tra
 logger.info(`${standardMatchupOddsInserted.count} odds entries added for standard matchups`);
 logger.info(`${standardMatchupsUpdated.count} standard matchups updated to 'used' status`);
 
+for (const id of standardMatchupIds) {
+  await queue.add({ id });
+}
+
+await queue.close();
 await prisma.$disconnect();

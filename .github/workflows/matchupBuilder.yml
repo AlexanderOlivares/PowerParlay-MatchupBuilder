@@ -37,5 +37,6 @@ jobs:
           AXIOM_TOKEN: ${{ secrets.AXIOM_TOKEN }}
           NODE_ENV: ${{ secrets.NODE_ENV }}
           LINES_BASE_URL: ${{ secrets.LINES_BASE_URL }}
+          REDIS_HOST: ${{ secrets.REDIS_HOST }}
           ODDS_DAY_OFFSET: ${{ inputs.ODDS_DAY_OFFSET}}
         run: ts-node matchupBuilder.ts
