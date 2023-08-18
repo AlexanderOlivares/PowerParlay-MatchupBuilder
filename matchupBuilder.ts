@@ -117,7 +117,8 @@ const linesRequests = [...leagueNameToOddsType.entries()].map(([league, oddsType
 
 const lines = await Promise.all(linesRequests.flat());
 
-const oddsLookup: OddsLookup = lines.reduce((acc: OddsLookup, { league, oddsType, data }) => {
+const oddsLookup: OddsLookup = lines.reduce((acc: OddsLookup, cv) => {
+  const { league, oddsType, data } = cv;
   if (!data || isGenericError(data)) return acc;
 
   if (!acc[league]) acc[league] = {};

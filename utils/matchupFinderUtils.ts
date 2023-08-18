@@ -64,6 +64,6 @@ export function handleNetworkError(error: any): GenericError {
   } else {
     logger.error({ unknownError: true, message: error });
   }
-  logger.warn({ message: "Error caught and returned { error: true }", error });
+  logger.warn({ message: "Error caught and returned { genericError: true }", error });
   return { genericError: true };
 }
