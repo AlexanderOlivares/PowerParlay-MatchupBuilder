@@ -16,3 +16,8 @@ export interface Job {
   retry: () => Promise<void>;
   remove: () => Promise<string>;
 }
+
+export interface OddsQueuePayload {
+  id: string;
+  gameStartTime: string;
+}

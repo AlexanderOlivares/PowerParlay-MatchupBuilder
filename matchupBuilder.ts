@@ -26,6 +26,8 @@ import {
 import { augustWeightingModel } from "./lib/leagueWeights.ts";
 import axios from "axios";
 import Queue from "bull";
+import { OddsQueuePayload } from "./interfaces/queue.ts";
+import { getOddsQueueDelay } from "./utils/oddsQueueUtils.ts";
 
 dotenv.config();
 
@@ -151,10 +153,10 @@ matchups.forEach(matchup => {
 });
 
 const adminSelectedMatchupOdds: Odds[] = [];
-const adminSelectedMatchupIds: string[] = [];
+const adminSelectedMatchupsToEnqueue: OddsQueuePayload[] = [];
 
 adminSelectedMatchups.forEach((matchup: Matchup) => {
-  const { id, idLeague, oddsType } = matchup;
+  const { id, idLeague, oddsType, strTimestamp } = matchup;
 
   const gameRow = parseOdds(matchup, oddsLookup, leagueLookup);
 
@@ -206,7 +208,7 @@ adminSelectedMatchups.forEach((matchup: Matchup) => {
   };
 
   adminSelectedMatchupOdds.push(odds);
-  adminSelectedMatchupIds.push(id);
+  adminSelectedMatchupsToEnqueue.push({ id, gameStartTime: strTimestamp });
 });
 
 const [adminSelectedInserted, adminSelectedMatchupsUpdated] = await prisma.$transaction([
@@ -216,7 +218,7 @@ const [adminSelectedInserted, adminSelectedMatchupsUpdated] = await prisma.$tran
   prisma.matchups.updateMany({
     where: {
       id: {
-        in: adminSelectedMatchupIds,
+        in: adminSelectedMatchupsToEnqueue.map(({ id }) => id),
       },
     },
     data: {
@@ -230,8 +232,9 @@ logger.info(
   `${adminSelectedMatchupsUpdated.count} admin-selected matchups updated to 'used' status`
 );
 
-for (const id of adminSelectedMatchupIds) {
-  await queue.add({ id });
+for (const { id, gameStartTime } of adminSelectedMatchupsToEnqueue) {
+  const delay = getOddsQueueDelay(gameStartTime);
+  await queue.add({ id, secondsDelay: delay, delay });
 }
 
 // targeting 20 matchups per day
@@ -252,7 +255,7 @@ const unusedMatchupsPerLeague = standardMatchups.reduce((acc: Map<string, number
 }, new Map());
 
 const standardMatchupOdds: Odds[] = [];
-const standardMatchupIds: string[] = [];
+const standardMatchupsToEnqueue: OddsQueuePayload[] = [];
 const seenMatchupsIds = new Set<string>();
 let errorCount = 0;
 
@@ -306,7 +309,7 @@ while (standardMatchupOdds.length < standardMatchupsNeeded) {
   const randomIndex = Math.floor(Math.random() * leagueMatchups.length);
   const matchup = leagueMatchups[randomIndex];
 
-  const { id, idLeague, oddsType } = matchup;
+  const { id, idLeague, oddsType, strTimestamp } = matchup;
   seenMatchupsIds.add(id);
 
   const gameRow = parseOdds(matchup, oddsLookup, leagueLookup);
@@ -362,7 +365,7 @@ while (standardMatchupOdds.length < standardMatchupsNeeded) {
   };
 
   standardMatchupOdds.push(odds);
-  standardMatchupIds.push(id);
+  standardMatchupsToEnqueue.push({ id, gameStartTime: strTimestamp });
 
   if (unusedCount <= 1) {
     unusedMatchupsPerLeague.delete(league);
@@ -378,7 +381,7 @@ const [standardMatchupOddsInserted, standardMatchupsUpdated] = await prisma.$tra
   prisma.matchups.updateMany({
     where: {
       id: {
-        in: standardMatchupIds,
+        in: standardMatchupsToEnqueue.map(({ id }) => id),
       },
     },
     data: {
@@ -390,8 +393,9 @@ const [standardMatchupOddsInserted, standardMatchupsUpdated] = await prisma.$tra
 logger.info(`${standardMatchupOddsInserted.count} odds entries added for standard matchups`);
 logger.info(`${standardMatchupsUpdated.count} standard matchups updated to 'used' status`);
 
-for (const id of standardMatchupIds) {
-  await queue.add({ id });
+for (const { id, gameStartTime } of standardMatchupsToEnqueue) {
+  const delay = getOddsQueueDelay(gameStartTime);
+  await queue.add({ id, secondsDelay: delay, delay });
 }
 
 await queue.close();
