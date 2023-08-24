@@ -1,13 +1,36 @@
 import Queue from "bull";
 import dotenv from "dotenv";
 import { Job } from "../../interfaces/queue";
+import { Matchup, Odds } from "../../interfaces/matchup";
+import { PrismaClient } from "@prisma/client";
+import axios from "axios";
+import logger from "../../winstonLogger.ts";
+import { getOddsQueueDelay } from "../../utils/oddsQueueUtils.ts";
 
 dotenv.config({ path: "../../.env" });
 
 const queue = new Queue("oddsQueue", process.env.REDIS_HOST!);
+const prisma = new PrismaClient();
 
 queue.process(async (job: any) => {
-  console.log(job.data);
+  logger.log(job.data);
+
+  const { id } = job.data;
+
+  const odds = await prisma.matchups.findUnique({
+    where: {
+      id,
+      used: true,
+    },
+    include: {
+      Odds: true,
+    },
+  });
+
+  if (odds?.strTimestamp) {
+    const delay = getOddsQueueDelay(odds.strTimestamp);
+    await queue.add({ id, secondsDelay: delay, delay });
+  }
   job.finish();
 });
 
