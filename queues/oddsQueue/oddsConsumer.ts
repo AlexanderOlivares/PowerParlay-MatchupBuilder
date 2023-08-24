@@ -13,7 +13,7 @@ const queue = new Queue("oddsQueue", process.env.REDIS_HOST!);
 const prisma = new PrismaClient();
 
 queue.process(async (job: any) => {
-  logger.info({ message: "odds queue", data: job.data });
+  logger.info({ message: "odds queue test", data: job.data });
 
   const { id } = job.data;
 
@@ -29,7 +29,9 @@ queue.process(async (job: any) => {
 
   if (odds?.strTimestamp) {
     const delay = getOddsQueueDelay(odds.strTimestamp);
-    await queue.add({ id, secondsDelay: delay, delay });
+    if (delay) {
+      await queue.add({ id, msDelay: delay }, { delay });
+    }
   }
   job.finish();
 });
