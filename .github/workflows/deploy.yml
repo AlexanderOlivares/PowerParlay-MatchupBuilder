@@ -24,17 +24,8 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
 
-      # - name: Add directory to PATH
-      #   run: echo "/home/alex/.nvm/versions/node/v14.21.3/bin" >> $GITHUB_PATH
-
       - name: Install Dependencies
         run: npm ci
-
-      - name: Start oddsQueue consumer
-        run: |
-          cd queues/oddsQueue
-          ts-node oddsConsumer.ts
-          cd ../..
 
       - name: Update .env File
         run: |
@@ -47,3 +38,9 @@ jobs:
           echo AXIOM_TOKEN=${{ secrets.AXIOM_TOKEN }} >> .env
           echo LINES_BASE_URL=${{ secrets.LINES_BASE_URL }} >> .env
           echo SPORTS_BASE_URL=${{ secrets.SPORTS_BASE_URL }} >> .env
+
+      - name: Restart oddsConsumer process id 3
+        run: |
+          pm2 stop 3
+          pm2 start 3
+          pm2 save
