@@ -1,0 +1,49 @@
+name: deploy
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: self-hosted
+
+    strategy:
+      matrix:
+        node-version: [14.x]
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Add directory to PATH
+        run: echo "/home/alex/.nvm/versions/node/v14.21.3/bin" >> $GITHUB_PATH
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Start oddsQueue consumer
+        run: |
+          cd queues/oddsQueue
+          ts-node oddsConsumer.ts
+          cd ../..
+
+      - name: Update .env File
+        run: |
+          rm -f .env
+          echo DATABASE_URL=${{ secrets.DATABASE_URL }} >> .env
+          echo REDIS_HOST=${{ secrets.REDIS_HOST }} >> .env
+          echo NODE_ENV=${{ secrets.NODE_ENV }} >> .env
+          echo AXIOM_DATASET=${{ secrets.AXIOM_DATASET }} >> .env
+          echo AXIOM_ORG_ID=${{ secrets.AXIOM_ORG_ID }} >> .env
+          echo AXIOM_TOKEN=${{ secrets.AXIOM_TOKEN }} >> .env
+          echo LINES_BASE_URL=${{ secrets.LINES_BASE_URL }} >> .env
+          echo SPORTS_BASE_URL=${{ secrets.SPORTS_BASE_URL }} >> .env
