@@ -3,7 +3,8 @@
   "module": "matchupFinder.ts",
   "type": "module",
   "scripts": {
-    "test": "vitest --coverage"
+    "test": "vitest --coverage",
+    "startOddsConsumer": "ts-node queues/oddsQueue/oddsConsumer.ts"
   },
   "devDependencies": {
     "@types/bull": "^4.10.0",
