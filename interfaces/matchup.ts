@@ -33,6 +33,7 @@ export interface Matchup {
 }
 
 export interface Odds {
+  [key: string]: number | null | undefined | string;
   id: string;
   matchupId: string;
   oddsGameId: number;

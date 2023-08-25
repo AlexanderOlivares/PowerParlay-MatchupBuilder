@@ -1,3 +1,5 @@
+import { Matchup, Odds } from "./matchup";
+
 export interface Job {
   id: string;
   name: string;
@@ -20,4 +22,8 @@ export interface Job {
 export interface OddsQueuePayload {
   id: string;
   gameStartTime: string;
+}
+
+export interface MatchupWithOdds extends Matchup {
+  Odds: Odds[];
 }
