@@ -234,7 +234,21 @@ logger.info(
 
 for (const { id, gameStartTime } of adminSelectedMatchupsToEnqueue) {
   const delay = getOddsQueueDelay(gameStartTime);
-  await queue.add({ id, msDelay: delay }, { delay });
+  await queue.add(
+    { id, msDelay: delay },
+    {
+      delay,
+      attempts: 3,
+      removeOnComplete: {
+        age: 604800, // keep up to 1 week (in seconds)
+        count: 1000, // keep up to 1000 jobs
+      },
+      backoff: {
+        type: "fixed",
+        delay: 3600000, // 1 hour
+      },
+    }
+  );
 }
 
 // targeting 20 matchups per day
@@ -395,7 +409,21 @@ logger.info(`${standardMatchupsUpdated.count} standard matchups updated to 'used
 
 for (const { id, gameStartTime } of standardMatchupsToEnqueue) {
   const delay = getOddsQueueDelay(gameStartTime);
-  await queue.add({ id, msDelay: delay }, { delay });
+  await queue.add(
+    { id, msDelay: delay },
+    {
+      delay,
+      attempts: 3,
+      removeOnComplete: {
+        age: 604800, // keep up to 1 week (in seconds)
+        count: 1000, // keep up to 1000 jobs
+      },
+      backoff: {
+        type: "fixed",
+        delay: 3600000, // 1 hour
+      },
+    }
+  );
 }
 
 await queue.close();

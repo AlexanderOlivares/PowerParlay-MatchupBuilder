@@ -1,3 +1,4 @@
+import Redis from "ioredis";
 import Queue from "bull";
 import dotenv from "dotenv";
 import { v4 as uuidv4 } from "uuid";
@@ -15,23 +16,27 @@ import { handleNetworkError } from "../../utils/matchupFinderUtils.ts";
 dotenv.config({ path: "../../.env" });
 
 const queue = new Queue("oddsQueue", process.env.REDIS_HOST!);
+const redis = new Redis(process.env.REDIS_HOST!);
 const prisma = new PrismaClient();
+
+async function getCachedOdds(endpointCacheKey: string) {
+  const cached = await redis.get(endpointCacheKey);
+  if (cached) {
+    logger.info({ message: "returned from cache!" });
+    return JSON.parse(cached);
+  }
+
+  const { data } = await axios.get(`${process.env.LINES_BASE_URL}/${endpointCacheKey}`);
+  redis.set(endpointCacheKey, JSON.stringify(data), "EX", 60 * 30); // cache for 30 minutes
+
+  return data;
+}
 
 // TODO fix any type
 queue.process(async (job: any) => {
   logger.info({ message: "odds queue test", data: job.data });
 
   const { id } = job.data;
-
-  if (job.attemptsMade > 2) {
-    logger.error({
-      message: "killing odds job after 2 failed attempts",
-      id,
-      location: "oddsConsumer",
-    });
-    await job.remove();
-    return;
-  }
 
   // @ts-ignore
   const matchupWithOdds: MatchupWithOdds | null = await prisma.matchups.findUnique({
@@ -54,28 +59,30 @@ queue.process(async (job: any) => {
   }
 
   const delayToNextUpdate = getOddsQueueDelay(matchupWithOdds.strTimestamp);
-  // const RETRY_DELAY = 3600000; // 1 hour in ms
-  const RETRY_DELAY = 30000; // 30 sec for testing
 
-  const { oddsType, oddsScope, strLeague, strTimestamp, strAwayTeam, strHomeTeam, Odds } =
+  if (!delayToNextUpdate) {
+    logger.info({
+      message: "moving matchup to liveScore queue",
+      location: "oddsConsumer",
+      matchupId: id,
+    });
+    // TODO add to liveScore queue
+  }
+
+  const { oddsType, oddsScope, idLeague, strTimestamp, strAwayTeam, strHomeTeam, Odds } =
     matchupWithOdds;
 
-  const league = leagueLookup[strLeague];
+  const league = leagueLookup[idLeague];
   const date = moment(strTimestamp).format("YYYY-MM-DD");
-
-  // TODO check if response in cache here
 
   let response;
 
   try {
-    const { data } = await axios.get(
-      `${process.env.LINES_BASE_URL}/${league}/${oddsType}/${oddsScope}.json?date=${date}`
-    );
-    response = data;
+    const endpointCacheKey = `${league}/${oddsType}/${oddsScope}.json?date=${date}`;
+    response = await getCachedOdds(endpointCacheKey);
   } catch (error) {
     handleNetworkError(error);
-    job.retry({ delay: RETRY_DELAY });
-    return;
+    throw new Error("Odds API request failed");
   }
   const gameData = response?.pageProps?.oddsTables?.[0]?.oddsTableModel?.gameRows ?? null;
 
@@ -86,49 +93,50 @@ queue.process(async (job: any) => {
     })) ?? null;
 
   if (!gameRows?.length) {
+    const message = "gameRows not found during odds update attempt";
     logger.warn({
-      message: "gameRows not found during odds update attempt",
+      message,
       anomalyData: { id, oddsType, league, oddsScope },
     });
-    job.retry({ delay: RETRY_DELAY });
-    return;
+    throw new Error(message);
   }
 
-  const gameRow = gameRows.find(game => {
-    game.gameView.awayTeam.fullName === strAwayTeam &&
-      game.gameView.homeTeam.fullName === strHomeTeam;
-  });
+  const gameRow = gameRows.find(
+    game =>
+      game.gameView.awayTeam.fullName === strAwayTeam &&
+      game.gameView.homeTeam.fullName === strHomeTeam
+  );
 
   if (!gameRow) {
+    const message = "No team match in game row";
     logger.error({
-      message: "No team match in game row",
+      message,
       anomalyData: { matchupId: id, league, oddsType },
     });
-    job.retry({ delay: RETRY_DELAY });
-    return;
+    throw new Error(message);
   }
 
   const { gameView, oddsViews } = gameRow;
 
   if (!gameView || !oddsViews) {
+    const message = "missing game view or odds view";
     logger.error({
-      message: "missing game view or odds view",
+      message,
       anomalyData: { matchupId: id, league },
     });
-    job.retry({ delay: RETRY_DELAY });
-    return;
+    throw new Error(message);
   }
 
   const latestDbOdds = Odds[0];
   const gameOdds = oddsViews.find(oddsView => oddsView.sportsbook === Odds[0].sportsbook);
 
   if (!gameOdds?.currentLine) {
+    const message = "no updated odds from same sportsbook found";
     logger.error({
-      message: "no updated odds from same sportsbook found",
+      message,
       anomalyData: { matchupId: id, sportsbook: Odds[0].sportsbook, league, oddsType },
     });
-    job.retry({ delay: RETRY_DELAY });
-    return;
+    throw new Error(message);
   }
 
   const { homeOdds, awayOdds, drawOdds, overOdds, underOdds, homeSpread, awaySpread, total } =
@@ -167,21 +175,13 @@ queue.process(async (job: any) => {
     }
   }
 
-  if (delayToNextUpdate) {
-    await queue.add({ id, msDelay: delayToNextUpdate }, { delay: delayToNextUpdate });
-    logger.info({
-      message: "adding matchup back to oddsQueue for next update",
-      location: "oddsConsumer",
-      matchupId: id,
-    });
-  } else {
-    logger.info({
-      message: "moving matchup to liveScore queue",
-      location: "oddsConsumer",
-      matchupId: id,
-    });
-    // TODO add to liveScore queue
-  }
+  await queue.add({ id, msDelay: delayToNextUpdate }, { delay: delayToNextUpdate });
+  logger.info({
+    message: "adding matchup back to oddsQueue for next update",
+    location: "oddsConsumer",
+    matchupId: id,
+  });
+
   job.finish();
 });
 
