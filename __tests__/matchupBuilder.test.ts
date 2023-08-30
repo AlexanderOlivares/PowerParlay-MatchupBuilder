@@ -4,6 +4,7 @@ import {
   dayRangeLaTimezone,
   getLeagueWeightRanges,
   getValidGameOdds,
+  unreliableSportsbooks,
 } from "../utils/matchupBuilderUtils";
 
 describe("dayRangeLaTimezone", () => {
@@ -77,8 +78,39 @@ describe("getLeagueWeightRanges", () => {
 describe("getValidGameOdds function", () => {
   const moneylineOddsView: OddsView[] = [
     {
+      gameId: 279232,
+      sportsbook: "fanduel", // fanduel and draftkings should be filtered out
+      sportsbookId: null,
+      viewType: "n/a",
+      openingLine: {
+        odds: null,
+        homeOdds: -100,
+        awayOdds: 150,
+        overOdds: null,
+        underOdds: null,
+        drawOdds: 0,
+        homeSpread: null,
+        awaySpread: null,
+        total: null,
+      },
+      currentLine: {
+        odds: null,
+        homeOdds: -100,
+        awayOdds: 190,
+        overOdds: null,
+        underOdds: null,
+        drawOdds: 0,
+        homeSpread: null,
+        awaySpread: null,
+        total: null,
+      },
+      moneyLineHistory: null,
+      spreadHistory: null,
+      totalHistory: null,
+    },
+    {
       gameId: 279233,
-      sportsbook: "somebook",
+      sportsbook: "betmgm",
       sportsbookId: null,
       viewType: "n/a",
       openingLine: {
@@ -134,5 +166,11 @@ describe("getValidGameOdds function", () => {
     // "pointspread" is the valid oddsType
     const result = getValidGameOdds(moneylineOddsView, "point-spread");
     expect(result).toBeUndefined();
+  });
+
+  it("should filter out fanduel and draftkings", () => {
+    const result = getValidGameOdds(moneylineOddsView, "pointspread");
+    expect(unreliableSportsbooks).not.toContain(result?.sportsbook);
+    expect(unreliableSportsbooks).not.toContain(result?.sportsbook);
   });
 });

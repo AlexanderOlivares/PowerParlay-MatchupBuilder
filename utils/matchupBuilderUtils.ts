@@ -66,9 +66,11 @@ export const mandatoryOddsFields: MandatoryOddsFields = {
   totals: ["overOdds", "underOdds", "total"],
 };
 
+// Odds from these books will appear then disappear so exclude them
+export const unreliableSportsbooks = ["draftkings", "fanduel"];
 export function getValidGameOdds(oddsViews: OddsView[], oddsType: string) {
   return oddsViews
-    ?.filter(Boolean)
+    ?.filter(oddsView => oddsView && !unreliableSportsbooks.includes(oddsView.sportsbook))
     .find(odds => mandatoryOddsFields[oddsType]?.every(field => odds?.currentLine[field] !== null));
 }
 

@@ -7,7 +7,7 @@ import { GameRows, GameView, Odds, OddsView } from "../../interfaces/matchup";
 import { PrismaClient } from "@prisma/client";
 import axios from "axios";
 import logger from "../../winstonLogger.ts";
-import { getOddsQueueDelay } from "../../utils/oddsQueueUtils.ts";
+import { getOddsQueueDelay, oddsWereUpdated } from "../../utils/oddsQueueUtils.ts";
 import { leagueLookup } from "../../utils/leagueMap.ts";
 import moment from "moment";
 import { mandatoryOddsFields } from "../../utils/matchupBuilderUtils.ts";
@@ -67,6 +67,8 @@ queue.process(async (job: any) => {
       matchupId: id,
     });
     // TODO add to liveScore queue
+    job.done();
+    return;
   }
 
   const { oddsType, oddsScope, idLeague, strTimestamp, strAwayTeam, strHomeTeam, Odds } =
@@ -142,8 +144,11 @@ queue.process(async (job: any) => {
   const { homeOdds, awayOdds, drawOdds, overOdds, underOdds, homeSpread, awaySpread, total } =
     gameOdds.currentLine;
 
-  const oddsChanged = mandatoryOddsFields[oddsType].some(
-    odds => gameOdds.currentLine[odds] !== latestDbOdds[odds]
+  const oddsChanged = oddsWereUpdated(
+    mandatoryOddsFields,
+    oddsType,
+    gameOdds.currentLine,
+    latestDbOdds
   );
 
   if (oddsChanged) {
@@ -182,7 +187,7 @@ queue.process(async (job: any) => {
     matchupId: id,
   });
 
-  job.finish();
+  job.done();
 });
 
 queue.on("completed", (job: Job) => {
@@ -190,7 +195,11 @@ queue.on("completed", (job: Job) => {
 });
 
 queue.on("error", (err: Error) => {
-  logger.error({ message: "Queue error", err });
+  logger.error({ message: "Error in oddsQueue", err });
+});
+
+queue.on("failed", (job, error) => {
+  logger.error({ message: "Job failed in oddsQueue", jobId: job.id, error: error.message });
 });
 
 setInterval(() => console.log("Consumer alive!"), 60000);

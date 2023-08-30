@@ -1,4 +1,6 @@
 import moment from "moment";
+import { MandatoryOddsFields } from "./matchupBuilderUtils";
+import { Odds, OddsView } from "../interfaces/matchup";
 
 export function getOddsQueueDelay(strTimestamp: string): number {
   const now = moment();
@@ -13,4 +15,15 @@ export function getOddsQueueDelay(strTimestamp: string): number {
   if (hours > 1) return 3600000; // 1 hour
   if (minutes > 30) return 1200000; // 20 minutes
   return 0; // back-off under 30 minutes
+}
+
+export function oddsWereUpdated(
+  mandatoryOddsFields: MandatoryOddsFields,
+  oddsType: string,
+  gameOddsCurrentLine: OddsView["currentLine"],
+  latestDbOdds: Odds
+) {
+  return mandatoryOddsFields[oddsType].some(
+    odds => gameOddsCurrentLine[odds] !== latestDbOdds[odds]
+  );
 }
