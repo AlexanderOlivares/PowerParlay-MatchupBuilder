@@ -35,7 +35,7 @@ model Matchups {
 
 model Odds {
   id         String   @id @unique @default(uuid())
-  matchupId  String   @unique
+  matchupId  String
   oddsGameId Int
   sportsbook String
   homeOdds   Int?

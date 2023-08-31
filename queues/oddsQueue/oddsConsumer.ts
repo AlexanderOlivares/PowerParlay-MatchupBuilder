@@ -2,7 +2,7 @@ import Redis from "ioredis";
 import Queue from "bull";
 import dotenv from "dotenv";
 import { v4 as uuidv4 } from "uuid";
-import { Job, MatchupWithOdds } from "../../interfaces/queue";
+import { MatchupWithOdds } from "../../interfaces/queue";
 import { GameRows, GameView, Odds, OddsView } from "../../interfaces/matchup";
 import { PrismaClient } from "@prisma/client";
 import axios from "axios";
@@ -67,8 +67,8 @@ queue.process(async (job: any) => {
       matchupId: id,
     });
     // TODO add to liveScore queue
-    job.done();
-    return;
+    job.finished();
+    return id;
   }
 
   const { oddsType, oddsScope, idLeague, strTimestamp, strAwayTeam, strHomeTeam, Odds } =
@@ -187,11 +187,12 @@ queue.process(async (job: any) => {
     matchupId: id,
   });
 
-  job.done();
+  job.finished();
+  return id;
 });
 
-queue.on("completed", (job: Job) => {
-  logger.info({ message: "Completed job in oddsQueue", jobId: job.id });
+queue.on("completed", (_, result) => {
+  logger.info({ message: "oddsQueue job completed", matchupId: result });
 });
 
 queue.on("error", (err: Error) => {
