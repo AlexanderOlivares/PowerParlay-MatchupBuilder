@@ -41,7 +41,7 @@ queue.on("error", error => {
 const daysInFuture = Number(process.env.ODDS_DAY_OFFSET) || 0;
 const targetDate = moment().add(daysInFuture, "day").format("YYYY-MM-DD");
 const dateRanges = dayRangeLaTimezone(targetDate);
-logger.debug({ message: "debug", targetDate, dateRanges });
+logger.info({ message: "debug", targetDate, dateRanges });
 
 const matchups: Matchup[] = await prisma.matchups.findMany({
   where: {
@@ -57,7 +57,7 @@ const matchups: Matchup[] = await prisma.matchups.findMany({
   ],
 });
 
-logger.debug({ message: "debug", matchupsFound: matchups.length });
+logger.info({ message: "debug", matchupsFound: matchups.length });
 
 type OddsType = "money-line" | "totals" | "pointspread";
 function isOddsType(value: string): value is OddsType {
