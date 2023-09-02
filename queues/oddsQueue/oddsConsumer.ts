@@ -131,7 +131,9 @@ queue.process(async (job: any) => {
   }
 
   const latestDbOdds = Odds[0];
-  const gameOdds = oddsViews.find(oddsView => oddsView.sportsbook === Odds[0].sportsbook);
+  const gameOdds = oddsViews.find(
+    (oddsView: OddsView | null) => oddsView?.sportsbook === Odds[0].sportsbook
+  );
 
   if (!gameOdds?.currentLine) {
     const message = "no updated odds from same sportsbook found";
