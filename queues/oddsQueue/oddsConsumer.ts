@@ -10,6 +10,7 @@ import logger from "../../winstonLogger.ts";
 import { getOddsQueueDelay, oddsWereUpdated } from "../../utils/oddsQueueUtils.ts";
 import { leagueLookup } from "../../utils/leagueMap.ts";
 import moment from "moment";
+import "moment-timezone";
 import { mandatoryOddsFields } from "../../utils/matchupBuilderUtils.ts";
 import { handleNetworkError } from "../../utils/matchupFinderUtils.ts";
 
@@ -75,7 +76,7 @@ queue.process(async (job: any) => {
     matchupWithOdds;
 
   const league = leagueLookup[idLeague];
-  const date = moment(strTimestamp).format("YYYY-MM-DD");
+  const date = moment.utc(strTimestamp).tz("America/Los_Angeles").format("YYYY-MM-DD");
 
   let response;
 

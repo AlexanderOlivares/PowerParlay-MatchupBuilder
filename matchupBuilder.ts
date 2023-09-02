@@ -23,7 +23,7 @@ import {
   OddsView,
   isGenericError,
 } from "./interfaces/matchup.ts";
-import { augustWeightingModel } from "./lib/leagueWeights.ts";
+import { fallWeightingModel } from "./lib/leagueWeights.ts";
 import axios from "axios";
 import Queue from "bull";
 import { OddsQueuePayload } from "./interfaces/queue.ts";
@@ -285,7 +285,7 @@ while (standardMatchupOdds.length < standardMatchupsNeeded) {
 
   const leagueWeights = getLeagueWeightRanges(
     [...unusedMatchupsPerLeague.keys()],
-    augustWeightingModel
+    fallWeightingModel
   );
 
   const league = getLeagueFromDistribution(leagueWeights);
