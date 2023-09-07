@@ -6,6 +6,7 @@ import {
   getWorkflowDayOffset,
   getWorkflowStartDate,
   handleNetworkError,
+  makeIsoIfUnixTimestamp,
   missingMandatoryFields,
 } from "../utils/matchupFinderUtils";
 import { leagueLookup } from "../utils/leagueMap";
@@ -191,5 +192,12 @@ describe("missingMandatoryFields", () => {
       3: "hi",
     };
     expect(missingMandatoryFields(["1", "2", "3"], mandatoryExistButEmptyString)).toBe(true);
+  });
+});
+
+describe("makeIsoIfUnixTimestamp", () => {
+  it("If the provided strTimestamp is a unix timestamp it should be converted to ISO string", async () => {
+    expect(makeIsoIfUnixTimestamp("1694313000")).toBe("2023-09-10T02:30:00.000Z");
+    expect(makeIsoIfUnixTimestamp("2023-09-07T23:20:00+00:00")).toBe("2023-09-07T23:20:00+00:00");
   });
 });

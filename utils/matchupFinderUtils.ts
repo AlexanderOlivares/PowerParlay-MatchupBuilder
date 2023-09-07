@@ -35,6 +35,12 @@ export function getUpcomingWeekDates(
   });
 }
 
+export function makeIsoIfUnixTimestamp(strTimestamp: string) {
+  const unixRegex = /^[0-9]{10}$/;
+  if (!unixRegex.test(strTimestamp)) return strTimestamp;
+  return moment.unix(parseInt(strTimestamp, 10)).toISOString();
+}
+
 interface TargetObject {
   [key: string]: any;
 }

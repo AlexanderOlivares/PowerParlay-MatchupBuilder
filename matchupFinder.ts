@@ -7,6 +7,7 @@ import logger from "./winstonLogger.ts";
 import {
   getUpcomingWeekDates,
   handleNetworkError,
+  makeIsoIfUnixTimestamp,
   missingMandatoryFields,
 } from "./utils/matchupFinderUtils.ts";
 import { leagueLookup } from "./utils/leagueMap.ts";
@@ -61,7 +62,7 @@ const mandatoryFields = [
   "strHomeTeam",
   "strAwayTeam",
   "strTimestamp",
-  "strThumb",
+  // "strThumb", temp omit since college football doesn't have thumbs posted
 ];
 
 for (const event of leagueEvents) {
@@ -82,12 +83,13 @@ for (const event of leagueEvents) {
     strThumb,
   } = event;
 
+  const gameStartTime = makeIsoIfUnixTimestamp(strTimestamp);
   // make sure event falls within the valid week window
-  const gameDate = moment.utc(strTimestamp).tz("America/Los_Angeles").format("YYYY-MM-DD");
+  const gameDate = moment.utc(gameStartTime).tz("America/Los_Angeles").format("YYYY-MM-DD");
   if (!upcomingWeekDates.includes(gameDate)) {
     logger.warn({
       message: "Game date not in upcoming week",
-      anomalyData: { gameDate, idEvent, strTimestamp },
+      anomalyData: { gameDate, idEvent, strTimestamp, gameStartTime },
     });
     continue;
   }
@@ -102,7 +104,7 @@ for (const event of leagueEvents) {
     strEvent,
     strHomeTeam,
     strAwayTeam,
-    strTimestamp,
+    strTimestamp: gameStartTime,
     strThumb,
     oddsType: "money-line",
     oddsScope: "full-game",
