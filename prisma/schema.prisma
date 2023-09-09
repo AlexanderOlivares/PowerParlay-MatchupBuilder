@@ -26,7 +26,10 @@ model Matchups {
   drawTeam       String?
   adminSelected  Boolean
   used           Boolean
-  result         String
+  awayScore      Int?
+  homeScore      Int?
+  pointsTotal    Int?
+  status         String
   locked         Boolean
   adminUnlocked  Boolean
   adminCorrected Boolean

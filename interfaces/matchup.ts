@@ -26,7 +26,10 @@ export interface Matchup {
   drawTeam?: string | null;
   adminSelected: boolean;
   used: boolean;
-  result: string; // need some system for this
+  awayScore: number | null;
+  homeScore: number | null;
+  pointsTotal: number | null;
+  status: string;
   locked: boolean;
   adminUnlocked: boolean;
   adminCorrected: boolean;

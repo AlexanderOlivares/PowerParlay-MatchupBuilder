@@ -73,7 +73,7 @@ queue.process(async (job: any) => {
         where: { id },
         data: {
           locked: true,
-          result: "IP",
+          status: "IP",
         },
       });
       logger.info({
