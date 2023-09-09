@@ -7,6 +7,7 @@ import {
   getMsToGameTime,
   getScoresAsNums,
   convertStringNumberToRealNumber,
+  getLiveScoreQueueDelay,
 } from "../utils/liveScoreQueueUtils";
 
 describe("gameTimeInPast", () => {
@@ -63,10 +64,22 @@ describe("getScoresAsNums", () => {
     expect(getScoresAsNums("0", "21")).toHaveProperty("homeScore");
   });
 });
+
 describe("convertStringNumberToRealNumber", () => {
   test("should return number version of the string input. 0 should not throw error", () => {
     expect(convertStringNumberToRealNumber("0")).toEqual(0);
     expect(convertStringNumberToRealNumber("1")).toEqual(1);
     expect(convertStringNumberToRealNumber("-1")).toEqual(-1);
+  });
+});
+
+describe("", () => {
+  test("returns the amount of ms in the future the gameTime is plus a 5 second added buffer", () => {
+    const inThreeHour = moment.utc().subtract(3, "hour");
+    const inTwoHour = moment.utc().subtract(2, "hour");
+    const inFiftyNineMins = moment.utc().subtract(59, "minute");
+    expect(getLiveScoreQueueDelay(inThreeHour.toISOString())).toBe(180000);
+    expect(getLiveScoreQueueDelay(inTwoHour.toISOString())).toBe(600000);
+    expect(getLiveScoreQueueDelay(inFiftyNineMins.toISOString())).toBe(1800000);
   });
 });

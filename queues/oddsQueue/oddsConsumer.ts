@@ -17,7 +17,7 @@ import { handleNetworkError } from "../../utils/matchupFinderUtils.ts";
 dotenv.config({ path: "../../.env" });
 
 const queue = new Queue("oddsQueue", process.env.REDIS_HOST!);
-// const liveScoreQueue = new Queue("liveScore", process.env.REDIS_HOST!);
+const liveScoreQueue = new Queue("liveScore", process.env.REDIS_HOST!);
 const redis = new Redis(process.env.REDIS_HOST!);
 const prisma = new PrismaClient();
 
@@ -60,7 +60,21 @@ queue.process(async (job: any) => {
   const delayToNextUpdate = getOddsQueueDelay(matchupWithOdds.strTimestamp);
 
   if (!delayToNextUpdate) {
-    // await liveScoreQueue.add({ id, msDelay: 0 });
+    await liveScoreQueue.add(
+      { id, msDelay: 0 },
+      {
+        delay: 0,
+        attempts: 3,
+        removeOnComplete: {
+          age: 604800, // keep up to 1 week (in seconds)
+          count: 1000, // keep up to 1000 jobs
+        },
+        backoff: {
+          type: "fixed",
+          delay: 180000, // 3 minutes
+        },
+      }
+    );
     logger.info({
       message: "moving matchup to liveScore queue",
       location: "oddsConsumer",

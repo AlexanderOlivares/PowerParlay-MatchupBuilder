@@ -12,6 +12,7 @@ import "moment-timezone";
 import { handleNetworkError } from "../../utils/matchupFinderUtils.ts";
 import {
   gameTimeInPast,
+  getLiveScoreQueueDelay,
   getMsToGameTime,
   getScoresAsNums,
 } from "../../utils/liveScoreQueueUtils.ts";
@@ -159,23 +160,52 @@ queue.process(async (job: any) => {
   if (strStatus === "FT") {
     // @ts-ignore already checking for falsy fields in .some func above
     const { awayScore, homeScore } = getScoresAsNums(intAwayScore, intHomeScore);
-    const scoreTotal = homeScore + awayScore;
-    const isDraw = awayScore === homeScore;
+    const pointsTotal = homeScore + awayScore;
 
-    let result: string;
+    const completedMatchup = await prisma.matchups.update({
+      where: {
+        id,
+      },
+      data: {
+        status: "FT",
+        locked: false,
+        awayScore,
+        homeScore,
+        pointsTotal,
+      },
+    });
 
-    if (oddsType === "money-line") {
-      // TODO
-    } else if (oddsType === "pointspread") {
-      // TODO
-    } else if (oddsType === "totals") {
-      // TODO
-    } else {
-      throw new Error("invalid oddsType found");
-    }
-
-    // update scores, totals and mark as unlocked on Matchup
-    // function to take in scores and determine winner and mark as win/loss for users
+    logger.info({
+      location,
+      message: "Matchup has ended",
+      matchupId: id,
+      awayScore: completedMatchup.awayScore,
+      homeScore: completedMatchup.homeScore,
+      pointsTotal: completedMatchup.pointsTotal,
+    });
+  } else {
+    const delay = getLiveScoreQueueDelay(matchup.strTimestamp);
+    await queue.add(
+      { id, delay },
+      {
+        delay,
+        attempts: 3,
+        removeOnComplete: {
+          age: 604800, // keep up to 1 week (in seconds)
+          count: 1000, // keep up to 1000 jobs
+        },
+        backoff: {
+          type: "fixed",
+          delay: 180000, // 3 minutes
+        },
+      }
+    );
+    logger.info({
+      message: "Game is IP. Adding back to liveScoreQueue for next update",
+      delay,
+      location,
+      matchupId: id,
+    });
   }
 
   job.finished();
@@ -184,18 +214,18 @@ queue.process(async (job: any) => {
 
 // TODO update all of these for liveScore queue
 queue.on("completed", (_, result) => {
-  logger.info({ message: "oddsQueue job completed", matchupId: result });
+  logger.info({ message: "liveScoreQueue job completed", matchupId: result });
 });
 
 queue.on("error", (err: Error) => {
-  logger.error({ message: "Error in oddsQueue", err });
+  logger.error({ message: "Error in liveScoreQueue", err });
 });
 
 queue.on("failed", (job, error) => {
-  logger.error({ message: "Job failed in oddsQueue", jobId: job.id, error: error.message });
+  logger.error({ message: "Job failed in liveScoreQueue", jobId: job.id, error: error.message });
 });
 
-setInterval(() => console.log("Consumer alive!"), 60000);
+setInterval(() => console.log("liveScoreConsumer alive!"), 60000);
 
 process.on("uncaughtException", function (err) {
   logger.error({ err, message: "Uncaught exception" });

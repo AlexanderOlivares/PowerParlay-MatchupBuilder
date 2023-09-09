@@ -7,6 +7,17 @@ export function getMsToGameTime(strTimestamp: string): number {
   return gameTime.diff(now);
 }
 
+export function getLiveScoreQueueDelay(strTimestamp: string): number {
+  const now = moment();
+  const gameStartTime = moment(strTimestamp);
+  const hours = now.diff(gameStartTime, "hours");
+
+  // Delay time in milliseconds
+  if (hours > 2) return 180000; // 3 minutes
+  if (hours > 1) return 600000; // 10 minutes
+  return 1800000; // 30 minutes
+}
+
 export function gameTimeInPast(strTimestamp: string) {
   const gameTime = moment.utc(strTimestamp);
   return gameTime.isBefore(moment.utc());
