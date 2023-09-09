@@ -5,7 +5,7 @@
   "scripts": {
     "test": "vitest --coverage",
     "startOddsConsumer": "ts-node queues/oddsQueue/oddsConsumer.ts",
-    "startLiveScoreConsumer": "ts-node queues/oddsQueue/liveScoreConsumer.ts"
+    "startLiveScoreConsumer": "ts-node queues/liveScoreQueue/liveScoreConsumer.ts"
   },
   "devDependencies": {
     "@types/bull": "^4.10.0",
