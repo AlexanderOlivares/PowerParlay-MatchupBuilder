@@ -72,10 +72,10 @@ export interface EventData {
   strDescriptionEN: string | null;
   strHomeTeam: string;
   strAwayTeam: string;
-  intHomeScore: number | null;
+  intHomeScore: string | null;
   intRound: string;
-  intAwayScore: number | null;
-  intSpectators: number | null;
+  intAwayScore: string | null;
+  intSpectators: string | null;
   strOfficial: string;
   strTimestamp: string;
   dateEvent: string;
@@ -196,4 +196,30 @@ export interface OddsView {
 export interface GameRows {
   gameView: GameView;
   oddsViews: OddsView[];
+}
+
+// Currently unused but leaving for possible future use
+export interface LiveScore {
+  idLiveScore: string;
+  idEvent: string;
+  strSport: string;
+  idLeague: string;
+  strLeague: string;
+  idHomeTeam: string;
+  idAwayTeam: string;
+  strHomeTeam: string;
+  strAwayTeam: string;
+  strHomeTeamBadge: string;
+  strAwayTeamBadge: string;
+  intHomeScore: string | null;
+  intAwayScore: string | null;
+  strPlayer: string | null;
+  idPlayer: string | null;
+  intEventScore: string | null;
+  intEventScoreTotal: string | null;
+  strStatus: string;
+  strProgress: string;
+  strEventTime: string;
+  dateEvent: string;
+  updated: string;
 }

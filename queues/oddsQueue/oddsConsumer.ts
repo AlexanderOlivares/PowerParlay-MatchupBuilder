@@ -17,6 +17,7 @@ import { handleNetworkError } from "../../utils/matchupFinderUtils.ts";
 dotenv.config({ path: "../../.env" });
 
 const queue = new Queue("oddsQueue", process.env.REDIS_HOST!);
+// const liveScoreQueue = new Queue("liveScore", process.env.REDIS_HOST!);
 const redis = new Redis(process.env.REDIS_HOST!);
 const prisma = new PrismaClient();
 
@@ -35,7 +36,7 @@ async function getCachedOdds(endpointCacheKey: string) {
 
 // TODO fix any type
 queue.process(async (job: any) => {
-  logger.info({ message: "odds queue test", data: job.data });
+  logger.info({ message: "odds queue processing", data: job.data });
 
   const { id } = job.data;
 
@@ -54,20 +55,17 @@ queue.process(async (job: any) => {
     },
   });
 
-  if (!matchupWithOdds?.strTimestamp) {
-    logger.error({ message: "matchup not found in db", location: "oddsQueue" });
-    return;
-  }
+  if (!matchupWithOdds?.strTimestamp) throw new Error("matchup not found in db");
 
   const delayToNextUpdate = getOddsQueueDelay(matchupWithOdds.strTimestamp);
 
   if (!delayToNextUpdate) {
+    // await liveScoreQueue.add({ id, msDelay: 0 });
     logger.info({
       message: "moving matchup to liveScore queue",
       location: "oddsConsumer",
       matchupId: id,
     });
-    // TODO add to liveScore queue
     job.finished();
     return id;
   }

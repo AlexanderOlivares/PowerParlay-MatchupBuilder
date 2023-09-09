@@ -198,6 +198,7 @@ describe("missingMandatoryFields", () => {
 describe("makeIsoIfUnixTimestamp", () => {
   it("If the provided strTimestamp is a unix timestamp it should be converted to ISO string", async () => {
     expect(makeIsoIfUnixTimestamp("1694313000")).toBe("2023-09-10T02:30:00.000Z");
+    expect(makeIsoIfUnixTimestamp("1694073494")).toBe("2023-09-07T07:58:14.000Z");
     expect(makeIsoIfUnixTimestamp("2023-09-07T23:20:00+00:00")).toBe("2023-09-07T23:20:00+00:00");
   });
 });

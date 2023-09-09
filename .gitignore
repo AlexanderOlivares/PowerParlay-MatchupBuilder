@@ -170,3 +170,5 @@ dist
 
 # misc
 mocks/
+/queues/oddsQueue/test*.ts
+
