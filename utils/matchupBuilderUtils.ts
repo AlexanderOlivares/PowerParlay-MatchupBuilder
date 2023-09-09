@@ -85,10 +85,13 @@ export function parseOdds(matchup: Matchup, oddsLookup: OddsLookup, leagueLookup
   const { idLeague, oddsType, strAwayTeam, strHomeTeam } = matchup;
   const leagueOddsType = oddsLookup[leagueLookup[idLeague]][oddsType];
 
+  const awayTeamRegex = new RegExp(strAwayTeam, "i");
+  const homeTeamRegex = new RegExp(strHomeTeam, "i");
+
   const gameRow = leagueOddsType.find(
     game =>
-      game.gameView.awayTeam.fullName === strAwayTeam &&
-      game.gameView.homeTeam.fullName === strHomeTeam
+      awayTeamRegex.test(game.gameView.awayTeam.fullName) &&
+      homeTeamRegex.test(game.gameView.homeTeam.fullName)
   );
 
   return gameRow;
