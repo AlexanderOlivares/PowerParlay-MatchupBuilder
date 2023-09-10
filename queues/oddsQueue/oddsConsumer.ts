@@ -183,6 +183,12 @@ queue.process(async (job: any) => {
       lastUpdate: moment.utc().toISOString(),
     };
 
+    logger.info({
+      previousOdds: latestDbOdds,
+      newOdds: odds,
+      debug: true,
+    });
+
     const updatedOdds = await prisma.odds.create({ data: odds });
 
     if (updatedOdds) {

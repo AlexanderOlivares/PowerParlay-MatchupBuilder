@@ -70,7 +70,7 @@ queue.process(async (job: any) => {
   if (!matchup.locked) {
     const gameStarted = gameTimeInPast(matchup.strTimestamp);
     if (gameStarted) {
-      prisma.matchups.update({
+      await prisma.matchups.update({
         where: { id },
         data: {
           locked: true,
