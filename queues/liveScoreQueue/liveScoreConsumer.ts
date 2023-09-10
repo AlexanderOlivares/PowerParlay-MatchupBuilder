@@ -5,9 +5,7 @@ import { EventData, Matchup } from "../../interfaces/matchup.ts";
 import { PrismaClient } from "@prisma/client";
 import axios from "axios";
 import logger from "../../winstonLogger.ts";
-import { getOddsQueueDelay } from "../../utils/oddsQueueUtils.ts";
 import { leagueLookup } from "../../utils/leagueMap.ts";
-import moment from "moment";
 import "moment-timezone";
 import { handleNetworkError } from "../../utils/matchupFinderUtils.ts";
 import {
@@ -25,21 +23,10 @@ const prisma = new PrismaClient();
 
 const location = "liveScoreConsumer";
 
-/**
- * - Determine time until game start and create a delay to approx that time so as to lock it
- * - fetch game and confirmed is "used" and start time makes sense
- * - mark game as locked and make it IP status
- * - call live score endpoint with league ID
- * - call event by ID endpoint as a confirmation/backup if liveScore returns strange stuff
- * - if game is finished mark as unlocked, FT status, and record scores
- * - maybe create some sort of "event" to push to clients somehow when game ends
- * - else re-add it to queue with delay down to every 3 minutes
- */
-
 async function getCachedResponse(endpointCacheKey: string, expirationTimeInSeconds: number) {
   const cached = await redis.get(endpointCacheKey);
   if (cached) {
-    logger.info({ message: "returned from cache!" });
+    logger.info({ message: "live score returned from cache!", cacheKey: endpointCacheKey });
     return JSON.parse(cached);
   }
 
@@ -95,33 +82,9 @@ queue.process(async (job: any) => {
     }
   }
 
-  // TODO update this for liveScore queue
-  const delayToNextUpdate = getOddsQueueDelay(matchup.strTimestamp);
-
-  // TODO update this
-  if (!delayToNextUpdate) {
-    logger.info({
-      message: "moving matchup to liveScore queue",
-      location,
-      matchupId: id,
-    });
-    job.finished();
-    return id;
-  }
-
-  const {
-    oddsType,
-    idEvent,
-    idLeague,
-    strTimestamp,
-    strAwayTeam,
-    strHomeTeam,
-    drawEligible,
-    drawTeam,
-  } = matchup;
+  const { idEvent, idLeague } = matchup;
 
   const league = leagueLookup[idLeague];
-  const date = moment.utc(strTimestamp).tz("America/Los_Angeles").format("YYYY-MM-DD");
 
   let eventResponse;
 

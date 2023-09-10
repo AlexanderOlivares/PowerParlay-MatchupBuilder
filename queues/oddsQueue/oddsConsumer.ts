@@ -24,7 +24,7 @@ const prisma = new PrismaClient();
 async function getCachedOdds(endpointCacheKey: string) {
   const cached = await redis.get(endpointCacheKey);
   if (cached) {
-    logger.info({ message: "returned from cache!" });
+    logger.info({ message: "odds returned from cache!", cacheKey: endpointCacheKey });
     return JSON.parse(cached);
   }
 
