@@ -18,23 +18,9 @@ import {
 dotenv.config({ path: "../../.env" });
 
 const queue = new Queue("liveScore", process.env.REDIS_HOST!);
-const redis = new Redis(process.env.REDIS_HOST!);
 const prisma = new PrismaClient();
 
 const location = "liveScoreConsumer";
-
-async function getCachedResponse(endpointCacheKey: string, expirationTimeInSeconds: number) {
-  const cached = await redis.get(endpointCacheKey);
-  if (cached) {
-    logger.info({ message: "live score returned from cache!", cacheKey: endpointCacheKey });
-    return JSON.parse(cached);
-  }
-
-  const { data } = await axios.get(`${process.env.LINES_BASE_URL}/${endpointCacheKey}`);
-  redis.set(endpointCacheKey, JSON.stringify(data), "EX", expirationTimeInSeconds); // cache for 30 minutes
-
-  return data;
-}
 
 // TODO fix any type
 queue.process(async (job: any) => {
@@ -89,8 +75,10 @@ queue.process(async (job: any) => {
   let eventResponse;
 
   try {
-    const eventEndpointCacheKey = `${process.env.SPORTS_BASE_URL}/lookupevent.php?id=${idEvent}`;
-    eventResponse = await getCachedResponse(eventEndpointCacheKey, 60 * 3);
+    const { data } = await axios.get(
+      `${process.env.SPORTS_BASE_URL}/lookupevent.php?id=${idEvent}`
+    );
+    eventResponse = data;
   } catch (error) {
     handleNetworkError(error);
     throw new Error("LiveScore API request failed");
