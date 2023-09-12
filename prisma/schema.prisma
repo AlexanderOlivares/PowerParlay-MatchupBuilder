@@ -46,9 +46,9 @@ model Odds {
   drawOdds   Int?
   overOdds   Int?
   underOdds  Int?
-  homeSpread Decimal?
-  awaySpread Decimal?
-  total      Decimal?
+  homeSpread Float?
+  awaySpread Float?
+  total      Float?
   lastUpdate String // datestring
   matchup    Matchups @relation(fields: [matchupId], references: [id])
 }
