@@ -84,10 +84,10 @@ queue.process(async (job: any) => {
     throw new Error("LiveScore API request failed");
   }
 
-  const event: EventData | null = eventResponse.events;
+  const event: EventData[] | string | null = eventResponse.events;
 
-  if (!event) {
-    const message = "No matching event in response";
+  if (!Array.isArray(event)) {
+    const message = "Error in event response";
     logger.error({
       message,
       location,
@@ -96,7 +96,7 @@ queue.process(async (job: any) => {
     throw new Error(message);
   }
 
-  const { intHomeScore, intAwayScore, strStatus } = event;
+  const { intHomeScore, intAwayScore, strStatus } = event[0];
 
   if ([intHomeScore, intAwayScore, strStatus].some(field => !field)) {
     const message = "missing mandatory field in event response";
