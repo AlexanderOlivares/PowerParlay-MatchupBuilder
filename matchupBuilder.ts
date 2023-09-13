@@ -276,6 +276,8 @@ const standardMatchupsToEnqueue: OddsQueuePayload[] = [];
 const seenMatchupsIds = new Set<string>();
 let errorCount = 0;
 
+const noOddsYetForLeagues = [];
+
 while (standardMatchupOdds.length < standardMatchupsNeeded) {
   // safeguard against infinite while loop
   if (errorCount > standardMatchupsNeeded) {
@@ -314,10 +316,7 @@ while (standardMatchupOdds.length < standardMatchupsNeeded) {
   );
 
   if (!leagueMatchups.length) {
-    logger.warn({
-      message: `no odds yet for remaining games in league ${league}`,
-      anomalyData: { league },
-    });
+    noOddsYetForLeagues.push(league);
     errorCount++;
     continue;
   }
@@ -390,6 +389,11 @@ while (standardMatchupOdds.length < standardMatchupsNeeded) {
     unusedMatchupsPerLeague.set(league, unusedCount - 1);
   }
 }
+
+logger.warn({
+  message: `no odds yet for remaining games in leagues`,
+  leagues: noOddsYetForLeagues,
+});
 
 const [standardMatchupOddsInserted, standardMatchupsUpdated] = await prisma.$transaction([
   prisma.odds.createMany({
