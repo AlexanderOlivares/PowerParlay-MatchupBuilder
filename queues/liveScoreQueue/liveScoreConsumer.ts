@@ -1,4 +1,3 @@
-import Redis from "ioredis";
 import Queue from "bull";
 import dotenv from "dotenv";
 import { EventData, Matchup } from "../../interfaces/matchup.ts";
@@ -40,8 +39,10 @@ queue.process(async (job: any) => {
     throw new Error("matchup not found in db");
   }
 
-  if (!matchup.locked) {
-    const gameStarted = gameTimeInPast(matchup.strTimestamp);
+  const { idEvent, idLeague, strTimestamp, locked } = matchup;
+
+  if (!locked) {
+    const gameStarted = gameTimeInPast(strTimestamp);
     if (gameStarted) {
       await prisma.matchups.update({
         where: { id },
@@ -56,8 +57,22 @@ queue.process(async (job: any) => {
         matchupId: id,
       });
     } else {
-      const delay = getMsToGameTime(matchup.strTimestamp);
-      await queue.add({ id, delayToGameTime: delay }, { delay });
+      const delay = getMsToGameTime(strTimestamp);
+      await queue.add(
+        { id, delayToGameTime: delay },
+        {
+          delay,
+          attempts: 3,
+          removeOnComplete: {
+            age: 604800, // keep up to 1 week (in seconds)
+            count: 1000, // keep up to 1000 jobs
+          },
+          backoff: {
+            type: "fixed",
+            delay: 180000, // 3 minutes
+          },
+        }
+      );
       logger.info({
         message: "GameTime in future. Adding back to liveScoreQueue",
         location,
@@ -67,8 +82,6 @@ queue.process(async (job: any) => {
       return id;
     }
   }
-
-  const { idEvent, idLeague } = matchup;
 
   const league = leagueLookup[idLeague];
 
@@ -98,6 +111,32 @@ queue.process(async (job: any) => {
 
   const { intHomeScore, intAwayScore, strStatus } = event[0];
 
+  // NS = not started. There is a lag period between the game start time and when the API marks it as IP
+  if (strStatus === "NS") {
+    await queue.add(
+      { id },
+      {
+        delay: 60000, // 1 minute
+        attempts: 3,
+        removeOnComplete: {
+          age: 604800, // keep up to 1 week (in seconds)
+          count: 1000, // keep up to 1000 jobs
+        },
+        backoff: {
+          type: "fixed",
+          delay: 180000, // 3 minutes
+        },
+      }
+    );
+    logger.warn({
+      message: "Game time in past but 'NS' status from API. Adding back to liveScoreQueue",
+      location,
+      anomalyData: { matchupId: id, strStatus, gameTime: strTimestamp },
+    });
+    job.finished();
+    return id;
+  }
+
   if ([intHomeScore, intAwayScore, strStatus].some(field => !field)) {
     const message = "missing mandatory field in event response";
     logger.error({
@@ -108,6 +147,7 @@ queue.process(async (job: any) => {
     throw new Error(message);
   }
 
+  // FT = full time. Game has ended
   if (strStatus === "FT") {
     // @ts-ignore already checking for falsy fields in .some func above
     const { awayScore, homeScore } = getScoresAsNums(intAwayScore, intHomeScore);
@@ -135,7 +175,7 @@ queue.process(async (job: any) => {
       pointsTotal: completedMatchup.pointsTotal,
     });
   } else {
-    const delay = getLiveScoreQueueDelay(matchup.strTimestamp);
+    const delay = getLiveScoreQueueDelay(strTimestamp);
     await queue.add(
       { id, delay },
       {
@@ -163,7 +203,6 @@ queue.process(async (job: any) => {
   return id;
 });
 
-// TODO update all of these for liveScore queue
 queue.on("completed", (_, result) => {
   logger.info({ message: "liveScoreQueue job completed", matchupId: result });
 });
@@ -173,7 +212,13 @@ queue.on("error", (err: Error) => {
 });
 
 queue.on("failed", (job, error) => {
-  logger.error({ message: "Job failed in liveScoreQueue", jobId: job.id, error: error.message });
+  // TODO create new job here? May continue to fail
+  logger.error({
+    message: "Job failed in liveScoreQueue",
+    jobId: job.id,
+    matchupId: job.data?.id,
+    error: error.message,
+  });
 });
 
 setInterval(() => console.log("liveScoreConsumer alive!"), 60000);
