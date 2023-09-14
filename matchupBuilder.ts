@@ -173,7 +173,7 @@ adminSelectedMatchups.forEach((matchup: Matchup) => {
 
   const { gameView, oddsViews } = gameRow;
 
-  if (!gameView || !oddsViews) {
+  if (!gameView || !oddsViews?.length) {
     logger.error({
       message: "missing game view or odds view",
       anomalyData: { matchupId: id, league: idLeague },
@@ -341,7 +341,7 @@ while (standardMatchupOdds.length < standardMatchupsNeeded) {
 
   const { gameView, oddsViews } = gameRow;
 
-  if (!gameView || !oddsViews) {
+  if (!gameView || !oddsViews?.length) {
     logger.error({
       message: "missing game view or odds view",
       anomalyData: { matchupId: id, league: idLeague },
@@ -392,7 +392,7 @@ while (standardMatchupOdds.length < standardMatchupsNeeded) {
 
 logger.warn({
   message: `no odds yet for remaining games in leagues`,
-  leagues: noOddsYetForLeagues,
+  leagues: [...new Set(noOddsYetForLeagues)],
 });
 
 const [standardMatchupOddsInserted, standardMatchupsUpdated] = await prisma.$transaction([

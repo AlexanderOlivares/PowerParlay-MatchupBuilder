@@ -198,7 +198,7 @@ export interface OddsView {
 
 export interface GameRows {
   gameView: GameView;
-  oddsViews: OddsView[];
+  oddsViews: (OddsView | null)[];
 }
 
 // Currently unused but leaving for possible future use

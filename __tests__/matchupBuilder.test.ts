@@ -4,8 +4,10 @@ import {
   dayRangeLaTimezone,
   getLeagueWeightRanges,
   getValidGameOdds,
+  matchGameRowByTeamNames,
   unreliableSportsbooks,
 } from "../utils/matchupBuilderUtils";
+import { gameRows } from "./fixtures/matchupBuilderFixtures";
 
 describe("dayRangeLaTimezone", () => {
   it("Returns a UTC date range from midnight to next day LA time", async () => {
@@ -172,5 +174,28 @@ describe("getValidGameOdds function", () => {
     const result = getValidGameOdds(moneylineOddsView, "pointspread");
     expect(unreliableSportsbooks).not.toContain(result?.sportsbook);
     expect(unreliableSportsbooks).not.toContain(result?.sportsbook);
+  });
+});
+
+describe("matchGameRowByTeamNames", () => {
+  it("returns a gameRow when team names match exactly", async () => {
+    const exactNames = matchGameRowByTeamNames(gameRows, "Chicago Cubs", "Colorado Rockies");
+    expect(exactNames?.gameView.awayTeam.fullName).toEqual("Chicago Cubs");
+    expect(exactNames?.gameView.homeTeam.fullName).toEqual("Colorado Rockies");
+  });
+  it("returns a gameRow when 1 provided team name is a partial match of the fullName", async () => {
+    const partialNames = matchGameRowByTeamNames(gameRows, "Los Angeles Angels", "Seattle");
+    expect(partialNames?.gameView.awayTeam.fullName).toEqual("Los Angeles Angels");
+    expect(partialNames?.gameView.homeTeam.fullName).toEqual("Seattle Mariners");
+  });
+  it("returns a gameRow when both provided names are only a partial match of the fullName", async () => {
+    const partialNames = matchGameRowByTeamNames(gameRows, "Angels", "Seattle");
+    expect(partialNames?.gameView.awayTeam.fullName).toEqual("Los Angeles Angels");
+    expect(partialNames?.gameView.homeTeam.fullName).toEqual("Seattle Mariners");
+  });
+  it("returns undefined when at least 1 team name is not a partial match", async () => {
+    const partialNames = matchGameRowByTeamNames(gameRows, "Angels", "Zeattle");
+    expect(partialNames?.gameView.awayTeam.fullName).toEqual(undefined);
+    expect(partialNames?.gameView.homeTeam.fullName).toEqual(undefined);
   });
 });

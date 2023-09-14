@@ -11,7 +11,7 @@ import { getOddsQueueDelay, oddsWereUpdated } from "../../utils/oddsQueueUtils.t
 import { leagueLookup } from "../../utils/leagueMap.ts";
 import moment from "moment";
 import "moment-timezone";
-import { mandatoryOddsFields } from "../../utils/matchupBuilderUtils.ts";
+import { mandatoryOddsFields, matchGameRowByTeamNames } from "../../utils/matchupBuilderUtils.ts";
 import { handleNetworkError } from "../../utils/matchupFinderUtils.ts";
 
 dotenv.config({ path: "../../.env" });
@@ -28,6 +28,7 @@ async function getCachedOdds(endpointCacheKey: string) {
     return JSON.parse(cached);
   }
 
+  // TODO find way to throw error if request fails
   const { data } = await axios.get(`${process.env.LINES_BASE_URL}/${endpointCacheKey}`);
   redis.set(endpointCacheKey, JSON.stringify(data), "EX", 60 * 30); // cache for 30 minutes
 
@@ -116,11 +117,7 @@ queue.process(async (job: any) => {
     throw new Error(message);
   }
 
-  const gameRow = gameRows.find(
-    game =>
-      game.gameView.awayTeam.fullName === strAwayTeam &&
-      game.gameView.homeTeam.fullName === strHomeTeam
-  );
+  const gameRow = matchGameRowByTeamNames(gameRows, strAwayTeam, strHomeTeam);
 
   if (!gameRow) {
     const message = "No team match in game row";
@@ -201,7 +198,21 @@ queue.process(async (job: any) => {
     }
   }
 
-  await queue.add({ id, msDelay: delayToNextUpdate }, { delay: delayToNextUpdate });
+  await queue.add(
+    { id, msDelay: delayToNextUpdate },
+    {
+      delay: delayToNextUpdate,
+      attempts: 3,
+      removeOnComplete: {
+        age: 604800, // keep up to 1 week (in seconds)
+        count: 1000, // keep up to 1000 jobs
+      },
+      backoff: {
+        type: "fixed",
+        delay: 1800000, // 30 minutes
+      },
+    }
+  );
   logger.info({
     message: "adding matchup back to oddsQueue for next update",
     location: "oddsConsumer",

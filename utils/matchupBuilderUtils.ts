@@ -68,7 +68,7 @@ export const mandatoryOddsFields: MandatoryOddsFields = {
 
 // Odds from these books will appear then disappear so exclude them
 export const unreliableSportsbooks = ["draftkings", "fanduel"];
-export function getValidGameOdds(oddsViews: OddsView[], oddsType: string) {
+export function getValidGameOdds(oddsViews: (OddsView | null)[], oddsType: string) {
   return oddsViews
     ?.filter(oddsView => oddsView && !unreliableSportsbooks.includes(oddsView.sportsbook))
     .find(odds => mandatoryOddsFields[oddsType]?.every(field => odds?.currentLine[field] !== null));
@@ -80,21 +80,29 @@ export interface OddsLookup {
   };
 }
 
-// TODO add tests for this
-export function parseOdds(matchup: Matchup, oddsLookup: OddsLookup, leagueLookup: LeagueLookup) {
-  const { idLeague, oddsType, strAwayTeam, strHomeTeam } = matchup;
-  const leagueOddsType = oddsLookup[leagueLookup[idLeague]][oddsType];
-
+export function matchGameRowByTeamNames(
+  gameRows: GameRows[],
+  strAwayTeam: string,
+  strHomeTeam: string
+) {
+  const validGameRows = gameRows.filter(
+    row => row?.gameView?.awayTeam?.fullName && row?.gameView?.homeTeam?.fullName
+  );
   const awayTeamRegex = new RegExp(strAwayTeam, "i");
   const homeTeamRegex = new RegExp(strHomeTeam, "i");
 
-  const gameRow = leagueOddsType.find(
+  return validGameRows.find(
     game =>
       awayTeamRegex.test(game.gameView.awayTeam.fullName) &&
       homeTeamRegex.test(game.gameView.homeTeam.fullName)
   );
+}
 
-  return gameRow;
+// TODO add tests for this
+export function parseOdds(matchup: Matchup, oddsLookup: OddsLookup, leagueLookup: LeagueLookup) {
+  const { idLeague, oddsType, strAwayTeam, strHomeTeam } = matchup;
+  const leagueOddsType = oddsLookup[leagueLookup[idLeague]][oddsType];
+  return matchGameRowByTeamNames(leagueOddsType, strAwayTeam, strHomeTeam);
 }
 
 // TODO add tests for this
