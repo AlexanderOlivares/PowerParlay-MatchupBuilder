@@ -38,6 +38,18 @@ queue.on("error", error => {
   logger.error({ message: "error adding to oddsQueue", error });
 });
 
+const { data } = await axios.get(`${process.env.LINES_TOKEN_REFRESH}`);
+const matches = data.match(/(?<=\"buildId":").{21}/i);
+if (!matches) {
+  const message = "Null refresh token";
+  logger.error({
+    message,
+    location: "matchupBuilder",
+  });
+  throw new Error(message);
+}
+const token = matches[0];
+
 const daysInFuture = Number(process.env.ODDS_DAY_OFFSET) || 0;
 const targetDate = moment().add(daysInFuture, "day").format("YYYY-MM-DD");
 const dateRanges = dayRangeLaTimezone(targetDate);
@@ -94,7 +106,7 @@ const linesRequests = [...leagueNameToOddsType.entries()].map(([league, oddsType
   const responses: Promise<LinesResponse>[] = [...oddsTypes].map(async oddsType => {
     try {
       const { data } = await axios.get(
-        `${process.env.LINES_BASE_URL}/${league}/${oddsType}/${oddsScope}.json?date=${targetDate}`
+        `${process.env.LINES_BASE_URL}${token}${process.env.LINES_ENDPOINT}${league}/${oddsType}/${oddsScope}.json?date=${targetDate}`
       );
       const gameData = data?.pageProps?.oddsTables?.[0]?.oddsTableModel?.gameRows ?? null;
 

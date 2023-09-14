@@ -21,6 +21,30 @@ const liveScoreQueue = new Queue("liveScore", process.env.REDIS_HOST!);
 const redis = new Redis(process.env.REDIS_HOST!);
 const prisma = new PrismaClient();
 
+const location = "oddsConsumer";
+
+async function getToken() {
+  const cached = await redis.get("token");
+  if (cached) {
+    logger.info({ message: "valid token" });
+    return cached;
+  }
+
+  const { data } = await axios.get(`${process.env.LINES_TOKEN_REFRESH}`);
+  const matches = data.match(/(?<=\"buildId":").{21}/i);
+  if (!matches) {
+    const message = "Null refresh token";
+    logger.error({
+      message,
+      location,
+    });
+    throw new Error(message);
+  }
+  const token = matches[0];
+  redis.set("token", token, "EX", 60 * 60); // cache for 1 hour
+  return token;
+}
+
 async function getCachedOdds(endpointCacheKey: string) {
   const cached = await redis.get(endpointCacheKey);
   if (cached) {
@@ -28,8 +52,10 @@ async function getCachedOdds(endpointCacheKey: string) {
     return JSON.parse(cached);
   }
 
-  // TODO find way to throw error if request fails
-  const { data } = await axios.get(`${process.env.LINES_BASE_URL}/${endpointCacheKey}`);
+  const token = await getToken();
+  const { data } = await axios.get(
+    `${process.env.LINES_BASE_URL}${token}${process.env.LINES_ENDPOINT}${endpointCacheKey}`
+  );
   redis.set(endpointCacheKey, JSON.stringify(data), "EX", 60 * 30); // cache for 30 minutes
 
   return data;
@@ -232,7 +258,12 @@ queue.on("error", (err: Error) => {
 });
 
 queue.on("failed", (job, error) => {
-  logger.error({ message: "Job failed in oddsQueue", jobId: job.id, error: error.message });
+  logger.error({
+    message: "Job failed in oddsQueue",
+    jobId: job.id,
+    matchupId: job?.data?.id,
+    error: error.message,
+  });
 });
 
 setInterval(() => console.log("Consumer alive!"), 60000);
