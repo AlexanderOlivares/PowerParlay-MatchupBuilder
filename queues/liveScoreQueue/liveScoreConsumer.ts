@@ -111,6 +111,30 @@ queue.process(async (job: any) => {
 
   const { intHomeScore, intAwayScore, strStatus } = event[0];
 
+  // POST = postponed. Treat as push
+  if (strStatus === "POST") {
+    await prisma.matchups.update({
+      where: {
+        id,
+      },
+      data: {
+        status: "FT",
+        locked: false,
+        adminUnlocked: true,
+        awayScore: 0,
+        homeScore: 0,
+        pointsTotal: 0,
+      },
+    });
+    logger.warn({
+      message: "Game is postponed. Unlocking and setting scores to 0",
+      location,
+      anomalyData: { matchupId: id, strStatus },
+    });
+    job.finished();
+    return id;
+  }
+
   // NS = not started. There is a lag period between the game start time and when the API marks it as IP
   if (strStatus === "NS") {
     await queue.add(
