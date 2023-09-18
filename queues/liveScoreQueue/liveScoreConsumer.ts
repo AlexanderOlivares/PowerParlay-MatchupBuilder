@@ -4,7 +4,7 @@ import { EventData, Matchup } from "../../interfaces/matchup.ts";
 import { PrismaClient } from "@prisma/client";
 import axios from "axios";
 import logger from "../../winstonLogger.ts";
-import { leagueLookup } from "../../utils/leagueMap.ts";
+import { MATCHUP_STATUSES, leagueLookup } from "../../utils/leagueMap.ts";
 import "moment-timezone";
 import { handleNetworkError } from "../../utils/matchupFinderUtils.ts";
 import {
@@ -111,8 +111,7 @@ queue.process(async (job: any) => {
 
   const { intHomeScore, intAwayScore, strStatus } = event[0];
 
-  // POST = postponed. Treat as push
-  if (strStatus === "POST") {
+  if (MATCHUP_STATUSES.shouldPush.includes(strStatus)) {
     await prisma.matchups.update({
       where: {
         id,
@@ -135,8 +134,8 @@ queue.process(async (job: any) => {
     return id;
   }
 
-  // NS = not started. There is a lag period between the game start time and when the API marks it as IP
-  if (strStatus === "NS") {
+  // There is a lag period between the game start time and when the API marks it as IP
+  if (MATCHUP_STATUSES.notStarted.includes(strStatus)) {
     await queue.add(
       { id },
       {
@@ -171,8 +170,7 @@ queue.process(async (job: any) => {
     throw new Error(message);
   }
 
-  // FT = full time. Game has ended
-  if (strStatus === "FT") {
+  if (MATCHUP_STATUSES.gameFinished.includes(strStatus)) {
     // @ts-ignore already checking for falsy fields in .some func above
     const { awayScore, homeScore } = getScoresAsNums(intAwayScore, intHomeScore);
     const pointsTotal = homeScore + awayScore;
