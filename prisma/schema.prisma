@@ -26,14 +26,15 @@ model Matchups {
   drawTeam       String?
   adminSelected  Boolean
   used           Boolean
+  locked         Boolean
+  adminUnlocked  Boolean
+  adminCorrected Boolean
   awayScore      Int?
   homeScore      Int?
   pointsTotal    Int?
   status         String
-  locked         Boolean
-  adminUnlocked  Boolean
-  adminCorrected Boolean
   Odds           Odds[]
+  Pick           Pick[]
 }
 
 model Odds {
@@ -43,12 +44,82 @@ model Odds {
   sportsbook String
   homeOdds   Int?
   awayOdds   Int?
-  drawOdds   Int?
-  overOdds   Int?
-  underOdds  Int?
   homeSpread Float?
   awaySpread Float?
   total      Float?
-  lastUpdate String // datestring
+  lastUpdate String
+  drawOdds   Int?
+  overOdds   Int?
+  underOdds  Int?
   matchup    Matchups @relation(fields: [matchupId], references: [id])
+  Pick       Pick[]
+}
+
+model Account {
+  id                String  @id
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  User              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Parlay {
+  id     String @id @unique
+  userId String
+  User   User   @relation(fields: [userId], references: [id])
+  Pick   Pick[]
+}
+
+model Pick {
+  id            String   @id @unique
+  userId        String
+  parlayId      String
+  oddsId        String
+  matchupId     String
+  locked        Boolean
+  useLatestOdds Boolean
+  pick          String
+  result        String
+  Matchups      Matchups @relation(fields: [matchupId], references: [id])
+  Odds          Odds     @relation(fields: [oddsId], references: [id])
+  Parlay        Parlay   @relation(fields: [parlayId], references: [id])
+  User          User     @relation(fields: [userId], references: [id])
+}
+
+model Session {
+  id           String   @id
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  User         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model User {
+  id            String    @id
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  Account       Account[]
+  Parlay        Parlay[]
+  Pick          Pick[]
+  Session       Session[]
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
 }
