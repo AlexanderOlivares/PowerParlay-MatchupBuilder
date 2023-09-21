@@ -219,7 +219,6 @@ adminSelectedMatchups.forEach((matchup: Matchup) => {
     homeSpread,
     awaySpread,
     total,
-    lastUpdate: moment.utc().toISOString(),
   };
 
   adminSelectedMatchupOdds.push(odds);
@@ -389,7 +388,6 @@ while (standardMatchupOdds.length < standardMatchupsNeeded) {
     homeSpread,
     awaySpread,
     total,
-    lastUpdate: moment.utc().toISOString(),
   };
 
   standardMatchupOdds.push(odds);

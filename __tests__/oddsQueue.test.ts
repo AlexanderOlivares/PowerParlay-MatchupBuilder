@@ -61,7 +61,7 @@ describe("oddsWereUpdated", () => {
       homeSpread: -8.5,
       awaySpread: 8.5,
       total: null,
-      lastUpdate: "2023-08-18T03:54:04.563Z",
+      cratedAt: "2023-08-18T03:54:04.563Z",
     };
     const changedLine = {
       odds: null,

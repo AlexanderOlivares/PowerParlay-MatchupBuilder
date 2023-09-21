@@ -36,7 +36,7 @@ export interface Matchup {
 }
 
 export interface Odds {
-  [key: string]: number | null | undefined | string;
+  [key: string]: number | null | undefined | string | Date;
   id: string;
   matchupId: string;
   oddsGameId: number;
@@ -49,7 +49,7 @@ export interface Odds {
   homeSpread?: number | null;
   awaySpread?: number | null;
   total?: number | null;
-  lastUpdate: string; // date string
+  createdAt?: Date;
 }
 
 export interface GenericError {

@@ -76,7 +76,7 @@ queue.process(async (job: any) => {
     include: {
       Odds: {
         orderBy: {
-          lastUpdate: "desc",
+          createdAt: "desc",
         },
       },
     },
@@ -203,7 +203,6 @@ queue.process(async (job: any) => {
       homeSpread,
       awaySpread,
       total,
-      lastUpdate: moment.utc().toISOString(),
     };
 
     logger.info({

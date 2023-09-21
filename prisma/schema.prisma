@@ -47,10 +47,10 @@ model Odds {
   homeSpread Float?
   awaySpread Float?
   total      Float?
-  lastUpdate String
   drawOdds   Int?
   overOdds   Int?
   underOdds  Int?
+  createdAt  DateTime @default(now())
   matchup    Matchups @relation(fields: [matchupId], references: [id])
   Pick       Pick[]
 }
@@ -74,10 +74,12 @@ model Account {
 }
 
 model Parlay {
-  id     String @id @unique
-  userId String
-  User   User   @relation(fields: [userId], references: [id])
-  Pick   Pick[]
+  id        String   @id @unique
+  userId    String
+  locked    Boolean
+  createdAt DateTime @default(now())
+  User      User     @relation(fields: [userId], references: [id])
+  Pick      Pick[]
 }
 
 model Pick {
@@ -90,6 +92,7 @@ model Pick {
   useLatestOdds Boolean
   pick          String
   result        String
+  pointsAwarded Float?
   Matchups      Matchups @relation(fields: [matchupId], references: [id])
   Odds          Odds     @relation(fields: [oddsId], references: [id])
   Parlay        Parlay   @relation(fields: [parlayId], references: [id])
