@@ -1,9 +1,10 @@
+import { Odds } from "../interfaces/matchup";
 import { mandatoryOddsFields } from "../utils/matchupBuilderUtils";
 import { oddsWereUpdated } from "../utils/oddsQueueUtils";
 
 describe("oddsWereUpdated", () => {
   it("detects money-line odds updates", async () => {
-    const latestDbOdds = {
+    const latestDbOdds: Odds = {
       id: "ad3bcbf8-037f-43c6-a13e-906dc7a3358b",
       matchupId: "e3aea48c-ce41-4f24-bde3-8c8c179bd84f",
       oddsGameId: 280813,
@@ -16,7 +17,7 @@ describe("oddsWereUpdated", () => {
       homeSpread: null,
       awaySpread: null,
       total: null,
-      lastUpdate: "2023-08-18T03:54:04.563Z",
+      createdAt: new Date("2023-08-18T03:54:04.563Z"),
     };
     const changedLine = {
       odds: null,
@@ -48,7 +49,7 @@ describe("oddsWereUpdated", () => {
     );
   });
   it("detects pointspread odds updates", async () => {
-    const latestDbOdds = {
+    const latestDbOdds: Odds = {
       id: "ad3bcbf8-037f-43c6-a13e-906dc7a3358b",
       matchupId: "e3aea48c-ce41-4f24-bde3-8c8c179bd84f",
       oddsGameId: 280813,
@@ -61,7 +62,7 @@ describe("oddsWereUpdated", () => {
       homeSpread: -8.5,
       awaySpread: 8.5,
       total: null,
-      cratedAt: "2023-08-18T03:54:04.563Z",
+      cratedAt: new Date("2023-08-18T03:54:04.563Z"),
     };
     const changedLine = {
       odds: null,
@@ -93,7 +94,7 @@ describe("oddsWereUpdated", () => {
     );
   });
   it("detects totals odds updates", async () => {
-    const latestDbOdds = {
+    const latestDbOdds: Odds = {
       id: "ad3bcbf8-037f-43c6-a13e-906dc7a3358b",
       matchupId: "e3aea48c-ce41-4f24-bde3-8c8c179bd84f",
       oddsGameId: 280813,
@@ -106,7 +107,7 @@ describe("oddsWereUpdated", () => {
       homeSpread: null,
       awaySpread: null,
       total: 159.5,
-      lastUpdate: "2023-08-18T03:54:04.563Z",
+      createdAt: new Date("2023-08-18T03:54:04.563Z"),
     };
     const changedLine = {
       odds: null,

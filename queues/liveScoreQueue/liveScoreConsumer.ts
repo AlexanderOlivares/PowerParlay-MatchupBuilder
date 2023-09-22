@@ -44,15 +44,42 @@ queue.process(async (job: any) => {
   if (!locked) {
     const gameStarted = gameTimeInPast(strTimestamp);
     if (gameStarted) {
-      await prisma.matchups.update({
-        where: { id },
-        data: {
-          locked: true,
-          status: "IP",
-        },
+      logger.info({
+        message: "Begin matchup start tx to lock matchup/picks/parlays",
+        location,
+        matchupId: id,
+      });
+      await prisma.$transaction(async tx => {
+        await tx.matchups.update({
+          where: { id },
+          data: {
+            locked: true,
+            status: "IP",
+          },
+        });
+
+        await tx.pick.updateMany({
+          where: { matchupId: id },
+          data: {
+            locked: true,
+          },
+        });
+
+        const picks = await tx.pick.findMany({
+          where: { matchupId: id },
+          select: { parlayId: true },
+        });
+
+        await tx.parlay.updateMany({
+          where: { id: { in: picks.map(({ parlayId }) => parlayId) } },
+          data: {
+            locked: true,
+          },
+        });
       });
       logger.info({
-        message: "Matchup updated to locked and IP",
+        message:
+          "Success -- completed matchup start tx. Matchup/picks/parlays updated to locked and IP",
         location,
         matchupId: id,
       });
@@ -175,26 +202,48 @@ queue.process(async (job: any) => {
     const { awayScore, homeScore } = getScoresAsNums(intAwayScore, intHomeScore);
     const pointsTotal = homeScore + awayScore;
 
-    const completedMatchup = await prisma.matchups.update({
-      where: {
-        id,
-      },
-      data: {
-        status: "FT",
-        locked: false,
-        awayScore,
-        homeScore,
-        pointsTotal,
-      },
+    logger.info({
+      message: "Begin matchup finished tx to unlock matchup/picks",
+      matchupId: id,
+      strStatus,
+      location,
+    });
+    await prisma.$transaction(async tx => {
+      await tx.matchups.update({
+        where: { id },
+        data: {
+          status: "FT",
+          locked: false,
+          awayScore,
+          homeScore,
+          pointsTotal,
+        },
+      });
+
+      const picks = await tx.pick.findMany({
+        where: { matchupId: id },
+        select: { id: true },
+      });
+
+      for (const { id } of picks) {
+        await tx.pick.update({
+          where: { id },
+          data: {
+            result: "FT", // need this to be win/loss
+            locked: false,
+            pointsAwarded: 100, // need logic to determine this
+          },
+        });
+      }
     });
 
     logger.info({
       location,
-      message: "Matchup has ended",
+      message: "Success -- completed matchup finished tx to unlock matchup/picks",
       matchupId: id,
-      awayScore: completedMatchup.awayScore,
-      homeScore: completedMatchup.homeScore,
-      pointsTotal: completedMatchup.pointsTotal,
+      awayScore,
+      homeScore,
+      pointsTotal,
     });
   } else {
     const delay = getLiveScoreQueueDelay(strTimestamp);
