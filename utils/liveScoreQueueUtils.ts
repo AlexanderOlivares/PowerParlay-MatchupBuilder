@@ -4,7 +4,7 @@ import {
   isMoneylineOdds,
   isPointSpreadOdds,
   isTotalsOdds,
-} from "../interfaces/queue";
+} from "../interfaces/queue.ts";
 
 export function getMsToGameTime(strTimestamp: string): number {
   const now = moment();
