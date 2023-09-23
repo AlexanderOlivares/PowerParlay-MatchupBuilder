@@ -148,6 +148,8 @@ const oddsLookup: OddsLookup = lines.reduce((acc: OddsLookup, cv) => {
   return acc;
 }, {});
 
+logger.info({ message: "debug", oddsLookup });
+
 const adminSelectedMatchups: Matchup[] = [];
 const standardMatchups: Matchup[] = [];
 const existingMatchups: Matchup[] = [];
