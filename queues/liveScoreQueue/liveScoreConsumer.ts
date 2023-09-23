@@ -11,8 +11,12 @@ import {
   gameTimeInPast,
   getLiveScoreQueueDelay,
   getMsToGameTime,
+  getPickResult,
   getScoresAsNums,
+  getSelectFieldsForOddsType,
 } from "../../utils/liveScoreQueueUtils.ts";
+import { isOddsType } from "../../utils/matchupBuilderUtils.ts";
+import { MatchupResult, OddsBasedOnOddsType } from "../../interfaces/queue.ts";
 
 dotenv.config({ path: "../../.env" });
 
@@ -39,7 +43,21 @@ queue.process(async (job: any) => {
     throw new Error("matchup not found in db");
   }
 
-  const { idEvent, idLeague, strTimestamp, locked } = matchup;
+  const {
+    idEvent,
+    idLeague,
+    strTimestamp,
+    locked,
+    oddsType,
+    drawEligible,
+    drawTeam,
+    strAwayTeam,
+    strHomeTeam,
+  } = matchup;
+
+  if (!isOddsType(oddsType)) {
+    throw new Error("Invalid oddsType");
+  }
 
   if (!locked) {
     const gameStarted = gameTimeInPast(strTimestamp);
@@ -222,14 +240,41 @@ queue.process(async (job: any) => {
 
       const picks = await tx.pick.findMany({
         where: { matchupId: id },
-        select: { id: true },
+        select: {
+          id: true,
+          oddsId: true,
+          pick: true,
+        },
       });
 
-      for (const { id } of picks) {
+      const select = getSelectFieldsForOddsType(oddsType);
+
+      for (const { id, oddsId, pick } of picks) {
+        // TODO cache oddsId
+        const odds = await tx.odds.findUnique({
+          where: { id: oddsId },
+          select,
+        });
+
+        const matchupResult: MatchupResult = {
+          awayScore,
+          homeScore,
+          pointsTotal,
+          oddsType,
+          drawEligible,
+          drawTeam,
+          strAwayTeam,
+          strHomeTeam,
+          pick,
+          odds: odds as OddsBasedOnOddsType,
+        };
+
+        const result = getPickResult(matchupResult);
+
         await tx.pick.update({
           where: { id },
           data: {
-            result: "FT", // need this to be win/loss
+            result,
             locked: false,
             pointsAwarded: 100, // need logic to determine this
           },

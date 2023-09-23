@@ -1,4 +1,4 @@
-type OddsType = "money-line" | "totals" | "pointspread";
+export type OddsType = "money-line" | "totals" | "pointspread";
 type OddsScope =
   | "full-game"
   | "1st-half"

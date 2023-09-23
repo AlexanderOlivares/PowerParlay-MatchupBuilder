@@ -12,6 +12,7 @@ import {
   getLeagueFromDistribution,
   getLeagueWeightRanges,
   getValidGameOdds,
+  isOddsType,
   parseOdds,
 } from "./utils/matchupBuilderUtils.ts";
 import {
@@ -20,6 +21,7 @@ import {
   GenericError,
   Matchup,
   Odds,
+  OddsType,
   OddsView,
   isGenericError,
 } from "./interfaces/matchup.ts";
@@ -70,11 +72,6 @@ const matchups: Matchup[] = await prisma.matchups.findMany({
 });
 
 logger.info({ message: "debug", matchupsFound: matchups.length });
-
-type OddsType = "money-line" | "totals" | "pointspread";
-function isOddsType(value: string): value is OddsType {
-  return value === "money-line" || value === "totals" || value === "pointspread";
-}
 
 const todaysLeagueIds = new Set<string>();
 const leagueNameToOddsType = new Map<string, Set<OddsType>>();

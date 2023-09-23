@@ -1,6 +1,6 @@
 import moment from "moment";
 import "moment-timezone";
-import { GameRows, Matchup, OddsView } from "../interfaces/matchup";
+import { GameRows, Matchup, OddsType, OddsView } from "../interfaces/matchup";
 import { LeagueLookup } from "./leagueMap";
 
 export function dayRangeLaTimezone(date: string) {
@@ -114,4 +114,8 @@ export function getLeagueFromDistribution(leagueWeights: Map<string, StartEnd>) 
       return league;
     }
   }
+}
+
+export function isOddsType(value: string): value is OddsType {
+  return value === "money-line" || value === "totals" || value === "pointspread";
 }
