@@ -91,47 +91,91 @@ export function getPickResult({
   pick, // team name, over, or under
   odds,
 }: MatchupResult) {
+  const ZeroPointsAwarded = { pointsAwarded: 0 };
   if (oddsType === "totals" && isTotalsOdds(odds)) {
-    if (pointsTotal === odds.total) return "push";
+    if (pointsTotal === odds.total) return { result: "push", ...ZeroPointsAwarded };
+    const { overOdds, underOdds } = odds;
     const outcome = pointsTotal > odds.total ? "over" : "under";
-    return pick === outcome ? "win" : "loss";
+    if (pick === outcome) {
+      // pick is a win
+      const pointsAwarded =
+        pick === "over" ? getPointsAwarded(overOdds) : getPointsAwarded(underOdds);
+      return { result: "win", pointsAwarded };
+    }
+    return { result: "loss", ...ZeroPointsAwarded };
   }
 
   if (oddsType === "money-line" && isMoneylineOdds(odds)) {
+    const { awayOdds, homeOdds, drawOdds } = odds;
     const isDraw = awayScore === homeScore;
     // Football offers no draw odds but can end in a tie
-    if (isDraw && !drawEligible) return "push";
+    if (isDraw && !drawEligible) return { result: "push", ...ZeroPointsAwarded };
 
-    if (isDraw) return drawTeam === pick ? "win" : "loss";
+    // TODO revise for draws
+    // if (isDraw) return drawTeam === pick ? "win" : "loss";
 
     const winner = awayScore > homeScore ? strAwayTeam : strHomeTeam;
-    return pick === winner ? "win" : "loss";
+    if (pick === winner) {
+      const pointsAwarded =
+        pick === strAwayTeam ? getPointsAwarded(awayOdds) : getPointsAwarded(homeOdds);
+      return { result: "win", pointsAwarded };
+    }
+    return { result: "loss", ...ZeroPointsAwarded };
   }
 
   if (oddsType === "pointspread" && isPointSpreadOdds(odds)) {
-    const { awaySpread, homeSpread } = odds;
+    const { awaySpread, homeSpread, awayOdds, homeOdds } = odds;
     // Football edge case where spread is 0 and game ends in tie
-    if (awaySpread === 0 && homeScore === awayScore) return "push";
+    if (awaySpread === 0 && homeScore === awayScore) {
+      return { result: "push", ...ZeroPointsAwarded };
+    }
 
     // away team is favorite
     if (awaySpread < homeSpread) {
-      if (awayScore - Math.abs(awaySpread) === homeScore) return "push";
+      if (awayScore - Math.abs(awaySpread) === homeScore) {
+        return { result: "push", ...ZeroPointsAwarded };
+      }
       const awayTeamCoveredSpread = awayScore - Math.abs(awaySpread) > homeScore;
       if (awayTeamCoveredSpread) {
-        return pick === strAwayTeam ? "win" : "loss";
+        const pointsAwarded = getPointsAwarded(awayOdds);
+        return pick === strAwayTeam
+          ? { result: "win", pointsAwarded }
+          : { result: "loss", ...ZeroPointsAwarded };
       }
-      return pick === strHomeTeam ? "win" : "loss";
+      const pointsAwarded = getPointsAwarded(homeOdds);
+      return pick === strHomeTeam
+        ? { result: "win", pointsAwarded }
+        : { result: "loss", ...ZeroPointsAwarded };
     }
 
     // home team is favorite
     if (awaySpread > homeSpread) {
-      if (homeScore - Math.abs(homeSpread) === awayScore) return "push";
+      if (homeScore - Math.abs(homeSpread) === awayScore) {
+        return { result: "push", ...ZeroPointsAwarded };
+      }
       const homeTeamCoveredSpread = homeScore - Math.abs(homeSpread) > awayScore;
       if (homeTeamCoveredSpread) {
-        return pick === strHomeTeam ? "win" : "loss";
+        const pointsAwarded = getPointsAwarded(homeOdds);
+        return pick === strHomeTeam
+          ? { result: "win", pointsAwarded }
+          : { result: "loss", ...ZeroPointsAwarded };
       }
-      return pick === strAwayTeam ? "win" : "loss";
+      const pointsAwarded = getPointsAwarded(awayOdds);
+      return pick === strAwayTeam
+        ? { result: "win", pointsAwarded }
+        : { result: "loss", ...ZeroPointsAwarded };
     }
   }
   throw new Error("Could not determine pick result. Needs admin review");
+}
+
+export function getPointsAwarded(odds: number) {
+  const BET_AMOUNT = 100; // always using 100 dollar bet size
+  const isPositiveOdds = odds >= 100;
+  if (isPositiveOdds) {
+    return odds === 100 ? BET_AMOUNT : odds;
+  }
+  const MULTIPLIER = 100000;
+  const withMultiplier = ((BET_AMOUNT * 100) / Math.abs(odds)) * MULTIPLIER;
+  return parseFloat((withMultiplier / MULTIPLIER).toFixed(2));
 }

@@ -269,14 +269,14 @@ queue.process(async (job: any) => {
           odds: odds as OddsBasedOnOddsType,
         };
 
-        const result = getPickResult(matchupResult);
+        const { result, pointsAwarded } = getPickResult(matchupResult);
 
         await tx.pick.update({
           where: { id },
           data: {
             result,
             locked: false,
-            pointsAwarded: 100, // need logic to determine this
+            pointsAwarded,
           },
         });
       }
