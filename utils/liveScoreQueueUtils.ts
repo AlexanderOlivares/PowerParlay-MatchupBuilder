@@ -116,13 +116,21 @@ export function getPickResult({
     // away team is favorite
     if (awaySpread < homeSpread) {
       if (awayScore - Math.abs(awaySpread) === homeScore) return "push";
-      return awayScore - Math.abs(awaySpread) > homeScore ? "win" : "loss";
+      const awayTeamCoveredSpread = awayScore - Math.abs(awaySpread) > homeScore;
+      if (awayTeamCoveredSpread) {
+        return pick === strAwayTeam ? "win" : "loss";
+      }
+      return pick === strHomeTeam ? "win" : "loss";
     }
 
     // home team is favorite
     if (awaySpread > homeSpread) {
       if (homeScore - Math.abs(homeSpread) === awayScore) return "push";
-      return homeScore - Math.abs(homeSpread) > awayScore ? "win" : "loss";
+      const homeTeamCoveredSpread = homeScore - Math.abs(homeSpread) > awayScore;
+      if (homeTeamCoveredSpread) {
+        return pick === strHomeTeam ? "win" : "loss";
+      }
+      return pick === strAwayTeam ? "win" : "loss";
     }
   }
   throw new Error("Could not determine pick result. Needs admin review");
