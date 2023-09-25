@@ -248,13 +248,23 @@ queue.process(async (job: any) => {
       });
 
       const select = getSelectFieldsForOddsType(oddsType);
+      const cachedOdds = new Map<string, OddsBasedOnOddsType>();
 
       for (const { id, oddsId, pick } of picks) {
-        // TODO cache oddsId
-        const odds = await tx.odds.findUnique({
-          where: { id: oddsId },
-          select,
-        });
+        let odds: OddsBasedOnOddsType;
+        if (cachedOdds.has(oddsId)) {
+          odds = cachedOdds.get(oddsId)!;
+        } else {
+          const oddsFound = (await tx.odds.findUnique({
+            where: { id: oddsId },
+            select,
+          })) as OddsBasedOnOddsType | null;
+          if (!oddsFound) {
+            throw new Error("Odds not found in matchup finished tx");
+          }
+          cachedOdds.set(oddsId, oddsFound);
+          odds = oddsFound;
+        }
 
         const matchupResult: MatchupResult = {
           awayScore,
@@ -266,7 +276,7 @@ queue.process(async (job: any) => {
           strAwayTeam,
           strHomeTeam,
           pick,
-          odds: odds as OddsBasedOnOddsType,
+          odds,
         };
 
         const { result, pointsAwarded } = getPickResult(matchupResult);

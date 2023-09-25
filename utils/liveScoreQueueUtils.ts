@@ -1,6 +1,7 @@
 import moment from "moment";
 import {
   MatchupResult,
+  OddsTypeSelectFields,
   isMoneylineOdds,
   isPointSpreadOdds,
   isTotalsOdds,
@@ -56,7 +57,9 @@ export function getWinner(awayRawScore: string, homeRawScore: string) {
   return awayScore > homeScore ? "away" : "home";
 }
 
-export function getSelectFieldsForOddsType(oddsType: "money-line" | "totals" | "pointspread") {
+export function getSelectFieldsForOddsType(
+  oddsType: "money-line" | "totals" | "pointspread"
+): OddsTypeSelectFields {
   if (oddsType === "money-line") {
     return {
       homeOdds: true,

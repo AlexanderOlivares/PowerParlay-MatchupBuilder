@@ -76,3 +76,27 @@ export function isPointSpreadOdds(odds: any): odds is PointSpreadOdds {
     odds.awaySpread !== null
   );
 }
+
+export interface MoneylineSelectFields {
+  homeOdds: boolean;
+  awayOdds: boolean;
+  drawOdds: boolean;
+}
+
+export interface TotalsSelectFields {
+  overOdds: boolean;
+  underOdds: boolean;
+  total: boolean;
+}
+
+export interface PointSpreadSelectFields {
+  homeOdds: boolean;
+  awayOdds: boolean;
+  homeSpread: boolean;
+  awaySpread: boolean;
+}
+
+export type OddsTypeSelectFields =
+  | MoneylineSelectFields
+  | TotalsSelectFields
+  | PointSpreadSelectFields;
