@@ -182,3 +182,24 @@ export function getPointsAwarded(odds: number) {
   const withMultiplier = ((BET_AMOUNT * 100) / Math.abs(odds)) * MULTIPLIER;
   return parseFloat((withMultiplier / MULTIPLIER).toFixed(2));
 }
+
+export function americanToDecimalOdds(americanOdds: number): number {
+  const unrounded = americanOdds > 0 ? americanOdds / 100 + 1 : 100 / Math.abs(americanOdds) + 1;
+  return parseFloat(unrounded.toFixed(2));
+}
+
+export function decimalToAmericanOdds(decimalOdds: number): number {
+  const unrounded =
+    decimalOdds >= 2.0
+      ? ((decimalOdds - 1) * 100).toFixed(2)
+      : (-100 / (decimalOdds - 1)).toFixed(2);
+  return Math.round(parseFloat(unrounded));
+}
+
+export function getWinOrDrawOdds(teamOdds: number, drawOdds: number) {
+  const teamDecimalOdds = americanToDecimalOdds(teamOdds);
+  const drawDecimalOdds = americanToDecimalOdds(drawOdds);
+  const rawOdds = 1 / (1 / teamDecimalOdds + 1 / drawDecimalOdds);
+  const decimalWinOrDrawOdds = parseFloat(rawOdds.toFixed(2));
+  return decimalToAmericanOdds(decimalWinOrDrawOdds);
+}
