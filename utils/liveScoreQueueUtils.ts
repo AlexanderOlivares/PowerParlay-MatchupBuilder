@@ -114,8 +114,13 @@ export function getPickResult({
     // Football offers no draw odds but can end in a tie
     if (isDraw && !drawEligible) return { result: "push", ...ZeroPointsAwarded };
 
-    // TODO revise for draws
-    // if (isDraw) return drawTeam === pick ? "win" : "loss";
+    // Used for soccer where one team will be picked to win or draw
+    if (isDraw) {
+      if (pick !== drawTeam) return { result: "loss", ...ZeroPointsAwarded };
+      const pickedTeamOdds = drawTeam === strAwayTeam ? awayOdds : homeOdds;
+      const winOrDrawOdds = getWinOrDrawOdds(pickedTeamOdds, drawOdds);
+      return { result: "win", pointsAwarded: getPointsAwarded(winOrDrawOdds) };
+    }
 
     const winner = awayScore > homeScore ? strAwayTeam : strHomeTeam;
     if (pick === winner) {
