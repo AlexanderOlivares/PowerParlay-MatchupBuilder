@@ -244,13 +244,17 @@ queue.process(async (job: any) => {
           id: true,
           oddsId: true,
           pick: true,
+          parlayId: true,
         },
       });
 
       const select = getSelectFieldsForOddsType(oddsType);
       const cachedOdds = new Map<string, OddsBasedOnOddsType>();
+      const parlayIdsToUpdate = new Set<string>();
 
-      for (const { id, oddsId, pick } of picks) {
+      for (const { id, oddsId, pick, parlayId } of picks) {
+        parlayIdsToUpdate.add(parlayId);
+
         let odds: OddsBasedOnOddsType;
         if (cachedOdds.has(oddsId)) {
           odds = cachedOdds.get(oddsId)!;
@@ -289,6 +293,24 @@ queue.process(async (job: any) => {
             pointsAwarded,
           },
         });
+      }
+
+      const parlays = await tx.parlay.findMany({
+        where: { id: { in: [...parlayIdsToUpdate] } },
+        include: { Pick: true },
+      });
+
+      for (const parlay of parlays) {
+        const onePickHasLost = parlay.Pick.some(pick => pick.result === "loss");
+        const allPicksHaveResult = parlay.Pick.every(pick =>
+          ["win", "push", "loss"].includes(pick.result)
+        );
+        if (onePickHasLost || allPicksHaveResult) {
+          await tx.parlay.update({
+            where: { id: parlay.id },
+            data: { locked: false },
+          });
+        }
       }
     });
 
