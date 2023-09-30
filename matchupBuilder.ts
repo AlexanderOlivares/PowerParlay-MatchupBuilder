@@ -264,9 +264,9 @@ for (const { id, gameStartTime } of adminSelectedMatchupsToEnqueue) {
   );
 }
 
-// targeting 20 matchups per day
+// targeting 30 matchups per day
 const standardMatchupsNeeded = Math.min(
-  20 - existingMatchups.length - adminSelectedInserted.count,
+  30 - existingMatchups.length - adminSelectedInserted.count,
   standardMatchups.length
 );
 
