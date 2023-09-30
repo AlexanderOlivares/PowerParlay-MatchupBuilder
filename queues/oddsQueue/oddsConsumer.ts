@@ -256,9 +256,11 @@ queue.on("error", (err: Error) => {
   logger.error({ message: "Error in oddsQueue", err });
 });
 
-queue.on("failed", (job, error) => {
+queue.on("failed", async (job, error) => {
+  const wasDeleted = await redis.del("token");
   logger.error({
     message: "Job failed in oddsQueue",
+    tokenDeletedFromCache: Boolean(wasDeleted),
     jobId: job.id,
     matchupId: job?.data?.id,
     error: error.message,
