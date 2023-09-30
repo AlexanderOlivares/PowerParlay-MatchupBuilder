@@ -202,3 +202,8 @@ export function getWinOrDrawOdds(teamOdds: number, drawOdds: number) {
   const decimalWinOrDrawOdds = parseFloat(rawOdds.toFixed(2));
   return decimalToAmericanOdds(decimalWinOrDrawOdds);
 }
+
+export function calculateParlayPayout(betAmount: number, odds: number[]): number {
+  const parlayPayout = odds.map(americanToDecimalOdds).reduce((a, c) => a * c, betAmount);
+  return parseFloat(parlayPayout.toFixed(2));
+}

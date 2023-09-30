@@ -13,6 +13,7 @@ import {
   americanToDecimalOdds,
   decimalToAmericanOdds,
   getWinOrDrawOdds,
+  calculateParlayPayout,
 } from "../utils/liveScoreQueueUtils";
 import { MatchupResult } from "../interfaces/queue.ts";
 
@@ -90,545 +91,545 @@ describe("getLiveScoreQueueDelay", () => {
   });
 });
 
-describe("getPickResult", () => {
-  test("Testing pointspread -- should return win when an away team favorite covers spread and pick is away team", () => {
-    const awayTeamCoverCorrectPick: MatchupResult = {
-      awayScore: 10,
-      homeScore: 3,
-      pointsTotal: 13,
-      oddsType: "pointspread",
-      drawEligible: false,
-      drawTeam: null,
-      strAwayTeam: "Cowboys",
-      strHomeTeam: "Cardinals",
-      pick: "Cowboys",
-      odds: {
-        homeOdds: -140,
-        awayOdds: 115,
-        homeSpread: 3,
-        awaySpread: -3,
-      },
-    };
-    const res = getPickResult(awayTeamCoverCorrectPick);
-    expect(res.result).toEqual("win");
-    expect(res.pointsAwarded).toEqual(115);
-  });
-  test("Testing pointspread -- should return loss when an away team favorite covers spread and pick is home team", () => {
-    const awayTeamCoverIncorrectPick: MatchupResult = {
-      awayScore: 10,
-      homeScore: 3,
-      pointsTotal: 13,
-      oddsType: "pointspread",
-      drawEligible: false,
-      drawTeam: null,
-      strAwayTeam: "Cowboys",
-      strHomeTeam: "Cardinals",
-      pick: "Cardinals",
-      odds: {
-        homeOdds: -140,
-        awayOdds: 115,
-        homeSpread: 3,
-        awaySpread: -3,
-      },
-    };
-    const res = getPickResult(awayTeamCoverIncorrectPick);
-    expect(res.result).toEqual("loss");
-    expect(res.pointsAwarded).toEqual(0);
-  });
-  test("Testing pointspread -- should return win when away team does not cover spread and pick is home team", () => {
-    const awayTeamNotCoverCorrectPick: MatchupResult = {
-      awayScore: 10,
-      homeScore: 9,
-      pointsTotal: 13,
-      oddsType: "pointspread",
-      drawEligible: false,
-      drawTeam: null,
-      strAwayTeam: "Cowboys",
-      strHomeTeam: "Cardinals",
-      pick: "Cardinals",
-      odds: {
-        homeOdds: -140,
-        awayOdds: 115,
-        homeSpread: 3,
-        awaySpread: -3,
-      },
-    };
-    const res = getPickResult(awayTeamNotCoverCorrectPick);
-    expect(res.result).toEqual("win");
-    expect(res.pointsAwarded).toEqual(71.43);
-  });
-  test("Testing pointspread -- should return loss when away team does not cover spread and pick is away team", () => {
-    const awayTeamNotCoverIncorrectPick: MatchupResult = {
-      awayScore: 10,
-      homeScore: 9,
-      pointsTotal: 13,
-      oddsType: "pointspread",
-      drawEligible: false,
-      drawTeam: null,
-      strAwayTeam: "Cowboys",
-      strHomeTeam: "Cardinals",
-      pick: "Cowboys",
-      odds: {
-        homeOdds: -140,
-        awayOdds: 115,
-        homeSpread: 3,
-        awaySpread: -3,
-      },
-    };
-    const res = getPickResult(awayTeamNotCoverIncorrectPick);
-    expect(res.result).toEqual("loss");
-    expect(res.pointsAwarded).toEqual(0);
-  });
-  test("Testing pointspread -- should return win when a home team favorite covers spread and pick is home team", () => {
-    const homeTeamCoverCorrectPick: MatchupResult = {
-      awayScore: 6,
-      homeScore: 10,
-      pointsTotal: 16,
-      oddsType: "pointspread",
-      drawEligible: false,
-      drawTeam: null,
-      strAwayTeam: "Cowboys",
-      strHomeTeam: "Cardinals",
-      pick: "Cardinals",
-      odds: {
-        homeOdds: -110,
-        awayOdds: 115,
-        homeSpread: -3,
-        awaySpread: 3,
-      },
-    };
-    const res = getPickResult(homeTeamCoverCorrectPick);
-    expect(res.result).toEqual("win");
-    expect(res.pointsAwarded).toEqual(90.91);
-  });
-  test("Testing pointspread -- should return loss when an home team favorite covers spread and pick is away team", () => {
-    const homeTeamCoverIncorrectPick: MatchupResult = {
-      awayScore: 6,
-      homeScore: 10,
-      pointsTotal: 16,
-      oddsType: "pointspread",
-      drawEligible: false,
-      drawTeam: null,
-      strAwayTeam: "Cowboys",
-      strHomeTeam: "Cardinals",
-      pick: "Cowboys",
-      odds: {
-        homeOdds: -140,
-        awayOdds: 115,
-        homeSpread: -3,
-        awaySpread: 3,
-      },
-    };
-    const res = getPickResult(homeTeamCoverIncorrectPick);
-    expect(res.result).toEqual("loss");
-    expect(res.pointsAwarded).toEqual(0);
-  });
-  test("Testing pointspread -- should return win when home team favorite does not cover spread and pick is away team", () => {
-    const homeTeamNotCoverCorrectPick: MatchupResult = {
-      awayScore: 9,
-      homeScore: 10,
-      pointsTotal: 19,
-      oddsType: "pointspread",
-      drawEligible: false,
-      drawTeam: null,
-      strAwayTeam: "Cowboys",
-      strHomeTeam: "Cardinals",
-      pick: "Cowboys",
-      odds: {
-        homeOdds: -140,
-        awayOdds: 115,
-        homeSpread: -3,
-        awaySpread: 3,
-      },
-    };
-    const res = getPickResult(homeTeamNotCoverCorrectPick);
-    expect(res.result).toEqual("win");
-    expect(res.pointsAwarded).toEqual(115);
-  });
-  test("Testing pointspread -- should return loss when home team favorite does not cover spread and pick is home team", () => {
-    const homeTeamNotCoverIncorrectPick: MatchupResult = {
-      awayScore: 9,
-      homeScore: 10,
-      pointsTotal: 19,
-      oddsType: "pointspread",
-      drawEligible: false,
-      drawTeam: null,
-      strAwayTeam: "Cowboys",
-      strHomeTeam: "Cardinals",
-      pick: "Cardinals",
-      odds: {
-        homeOdds: -140,
-        awayOdds: 115,
-        homeSpread: -3,
-        awaySpread: 3,
-      },
-    };
-    const res = getPickResult(homeTeamNotCoverIncorrectPick);
-    expect(res.result).toEqual("loss");
-    expect(res.pointsAwarded).toEqual(0);
-  });
-  test("Testing pointspread -- should return push for a draw ineligible matchup where the spread is a whole number and away favorite team wins by exactly that amount", () => {
-    const homeTeamNotCoverIncorrectPick: MatchupResult = {
-      awayScore: 21,
-      homeScore: 14,
-      pointsTotal: 35,
-      oddsType: "pointspread",
-      drawEligible: false,
-      drawTeam: null,
-      strAwayTeam: "Cowboys",
-      strHomeTeam: "Cardinals",
-      pick: "Cowboys",
-      odds: {
-        homeOdds: -140,
-        awayOdds: 115,
-        homeSpread: 7,
-        awaySpread: -7,
-      },
-    };
-    const res = getPickResult(homeTeamNotCoverIncorrectPick);
-    expect(res.result).toEqual("push");
-    expect(res.pointsAwarded).toEqual(0);
-  });
-  test("Testing pointspread -- should return push for a draw ineligible matchup where the spread is a whole number and home favorite team wins by exactly that amount", () => {
-    const homeTeamNotCoverIncorrectPick: MatchupResult = {
-      awayScore: 7,
-      homeScore: 14,
-      pointsTotal: 35,
-      oddsType: "pointspread",
-      drawEligible: false,
-      drawTeam: null,
-      strAwayTeam: "Cowboys",
-      strHomeTeam: "Cardinals",
-      pick: "Cowboys",
-      odds: {
-        homeOdds: -140,
-        awayOdds: 115,
-        homeSpread: -7,
-        awaySpread: 7,
-      },
-    };
-    const res = getPickResult(homeTeamNotCoverIncorrectPick);
-    expect(res.result).toEqual("push");
-    expect(res.pointsAwarded).toEqual(0);
-  });
-  test("Testing pointspread -- should return push for a draw ineligible matchup when spread is 0 and game ends in a draw", () => {
-    const homeTeamNotCoverIncorrectPick: MatchupResult = {
-      awayScore: 9,
-      homeScore: 9,
-      pointsTotal: 18,
-      oddsType: "pointspread",
-      drawEligible: false,
-      drawTeam: null,
-      strAwayTeam: "Cowboys",
-      strHomeTeam: "Cardinals",
-      pick: "Cardinals",
-      odds: {
-        homeOdds: -140,
-        awayOdds: 115,
-        homeSpread: 0,
-        awaySpread: 0,
-      },
-    };
-    const res = getPickResult(homeTeamNotCoverIncorrectPick);
-    expect(res.result).toEqual("push");
-    expect(res.pointsAwarded).toEqual(0);
-  });
-  // money-line
-  test("Testing money-line -- should return push for a draw ineligible matchup when spread is 0 and game ends in a draw", () => {
-    const push: MatchupResult = {
-      awayScore: 9,
-      homeScore: 9,
-      pointsTotal: 18,
-      oddsType: "money-line",
-      drawEligible: false,
-      drawTeam: null,
-      strAwayTeam: "Cowboys",
-      strHomeTeam: "Cardinals",
-      pick: "Cardinals",
-      odds: {
-        homeOdds: -140,
-        awayOdds: 115,
-        drawOdds: 0,
-      },
-    };
-    const res = getPickResult(push);
-    expect(res.result).toEqual("push");
-    expect(res.pointsAwarded).toEqual(0);
-  });
-  test("Testing money-line -- should return a win for home team", () => {
-    const homeWin: MatchupResult = {
-      awayScore: 9,
-      homeScore: 21,
-      pointsTotal: 18,
-      oddsType: "money-line",
-      drawEligible: false,
-      drawTeam: null,
-      strAwayTeam: "Cowboys",
-      strHomeTeam: "Cardinals",
-      pick: "Cardinals",
-      odds: {
-        homeOdds: -140,
-        awayOdds: 115,
-        drawOdds: 0,
-      },
-    };
-    const res = getPickResult(homeWin);
-    expect(res.result).toEqual("win");
-    expect(res.pointsAwarded).toEqual(71.43);
-  });
-  test("Testing money-line -- should return a win for away team", () => {
-    const awayWin: MatchupResult = {
-      awayScore: 9,
-      homeScore: 3,
-      pointsTotal: 18,
-      oddsType: "money-line",
-      drawEligible: false,
-      drawTeam: null,
-      strAwayTeam: "Cowboys",
-      strHomeTeam: "Cardinals",
-      pick: "Cowboys",
-      odds: {
-        homeOdds: -140,
-        awayOdds: 115,
-        drawOdds: 0,
-      },
-    };
-    const res = getPickResult(awayWin);
-    expect(res.result).toEqual("win");
-    expect(res.pointsAwarded).toEqual(115);
-  });
-  test("Testing money-line -- should return a loss for home team", () => {
-    const homeLoss: MatchupResult = {
-      awayScore: 9,
-      homeScore: 3,
-      pointsTotal: 18,
-      oddsType: "money-line",
-      drawEligible: false,
-      drawTeam: null,
-      strAwayTeam: "Cowboys",
-      strHomeTeam: "Cardinals",
-      pick: "Cardinals",
-      odds: {
-        homeOdds: -140,
-        awayOdds: 115,
-        drawOdds: 0,
-      },
-    };
-    const res = getPickResult(homeLoss);
-    expect(res.result).toEqual("loss");
-    expect(res.pointsAwarded).toEqual(0);
-  });
-  test("Testing money-line -- should return a loss for away team", () => {
-    const awayLoss: MatchupResult = {
-      awayScore: 9,
-      homeScore: 13,
-      pointsTotal: 18,
-      oddsType: "money-line",
-      drawEligible: false,
-      drawTeam: null,
-      strAwayTeam: "Cowboys",
-      strHomeTeam: "Cardinals",
-      pick: "Cowboys",
-      odds: {
-        homeOdds: -140,
-        awayOdds: 115,
-        drawOdds: 0,
-      },
-    };
-    const res = getPickResult(awayLoss);
-    expect(res.result).toEqual("loss");
-    expect(res.pointsAwarded).toEqual(0);
-  });
-  test("Testing money-line -- should return a win for away team in a draw", () => {
-    const awayWinOnADraw: MatchupResult = {
-      awayScore: 2,
-      homeScore: 2,
-      pointsTotal: 4,
-      oddsType: "money-line",
-      drawEligible: true,
-      drawTeam: "Austin FC",
-      strAwayTeam: "Austin FC",
-      strHomeTeam: "Houston Dynamo",
-      pick: "Austin FC",
-      odds: {
-        homeOdds: -140,
-        awayOdds: 115,
-        drawOdds: 250,
-      },
-    };
-    const res = getPickResult(awayWinOnADraw);
-    expect(res.result).toEqual("win");
-    expect(res.pointsAwarded).toEqual(33);
-  });
-  test("Testing money-line -- should return a win for hme team in a draw", () => {
-    const homeWinOnADraw: MatchupResult = {
-      awayScore: 2,
-      homeScore: 2,
-      pointsTotal: 4,
-      oddsType: "money-line",
-      drawEligible: true,
-      drawTeam: "Houston Dynamo",
-      strAwayTeam: "Austin FC",
-      strHomeTeam: "Houston Dynamo",
-      pick: "Houston Dynamo",
-      odds: {
-        homeOdds: -140,
-        awayOdds: 115,
-        drawOdds: 250,
-      },
-    };
-    const res = getPickResult(homeWinOnADraw);
-    expect(res.result).toEqual("win");
-    expect(res.pointsAwarded).toEqual(14.99);
-  });
-  test("Testing money-line -- should return a loss for away team in a draw", () => {
-    const awayLossOnADraw: MatchupResult = {
-      awayScore: 2,
-      homeScore: 2,
-      pointsTotal: 4,
-      oddsType: "money-line",
-      drawEligible: true,
-      drawTeam: "Houston Dynamo",
-      strAwayTeam: "Austin FC",
-      strHomeTeam: "Houston Dynamo",
-      pick: "Austin FC",
-      odds: {
-        homeOdds: -140,
-        awayOdds: 115,
-        drawOdds: 250,
-      },
-    };
-    const res = getPickResult(awayLossOnADraw);
-    expect(res.result).toEqual("loss");
-    expect(res.pointsAwarded).toEqual(0);
-  });
-  test("Testing money-line -- should return a loss for home team in a draw", () => {
-    const homeLossOnADraw: MatchupResult = {
-      awayScore: 2,
-      homeScore: 2,
-      pointsTotal: 4,
-      oddsType: "money-line",
-      drawEligible: true,
-      drawTeam: "Austin FC",
-      strAwayTeam: "Austin FC",
-      strHomeTeam: "Houston Dynamo",
-      pick: "Houston Dynamo",
-      odds: {
-        homeOdds: -140,
-        awayOdds: 115,
-        drawOdds: 250,
-      },
-    };
-    const res = getPickResult(homeLossOnADraw);
-    expect(res.result).toEqual("loss");
-    expect(res.pointsAwarded).toEqual(0);
-  });
-  test("Testing totals -- should return a win for over", () => {
-    const overWin: MatchupResult = {
-      awayScore: 2,
-      homeScore: 2,
-      pointsTotal: 4,
-      oddsType: "totals",
-      drawEligible: false,
-      drawTeam: "Austin FC",
-      strAwayTeam: "Austin FC",
-      strHomeTeam: "Houston Dynamo",
-      pick: "over",
-      odds: {
-        overOdds: -115,
-        underOdds: 115,
-        total: 3.5,
-      },
-    };
-    const res = getPickResult(overWin);
-    expect(res.result).toEqual("win");
-    expect(res.pointsAwarded).toEqual(86.96);
-  });
-  test("Testing totals -- should return a win for under", () => {
-    const underWin: MatchupResult = {
-      awayScore: 2,
-      homeScore: 2,
-      pointsTotal: 4,
-      oddsType: "totals",
-      drawEligible: false,
-      drawTeam: "Austin FC",
-      strAwayTeam: "Austin FC",
-      strHomeTeam: "Houston Dynamo",
-      pick: "under",
-      odds: {
-        overOdds: -115,
-        underOdds: 115,
-        total: 4.5,
-      },
-    };
-    const res = getPickResult(underWin);
-    expect(res.result).toEqual("win");
-    expect(res.pointsAwarded).toEqual(115);
-  });
-  test("Testing totals -- should return a loss for over", () => {
-    const overLoss: MatchupResult = {
-      awayScore: 2,
-      homeScore: 0,
-      pointsTotal: 2,
-      oddsType: "totals",
-      drawEligible: false,
-      drawTeam: "Austin FC",
-      strAwayTeam: "Austin FC",
-      strHomeTeam: "Houston Dynamo",
-      pick: "over",
-      odds: {
-        overOdds: -115,
-        underOdds: 115,
-        total: 2.5,
-      },
-    };
-    const res = getPickResult(overLoss);
-    expect(res.result).toEqual("loss");
-    expect(res.pointsAwarded).toEqual(0);
-  });
-  test("Testing totals -- should return a loss for under", () => {
-    const underLoss: MatchupResult = {
-      awayScore: 2,
-      homeScore: 1,
-      pointsTotal: 3,
-      oddsType: "totals",
-      drawEligible: false,
-      drawTeam: "Austin FC",
-      strAwayTeam: "Austin FC",
-      strHomeTeam: "Houston Dynamo",
-      pick: "under",
-      odds: {
-        overOdds: -115,
-        underOdds: 115,
-        total: 2.5,
-      },
-    };
-    const res = getPickResult(underLoss);
-    expect(res.result).toEqual("loss");
-    expect(res.pointsAwarded).toEqual(0);
-  });
-  test("Testing totals -- should return a push", () => {
-    const push: MatchupResult = {
-      awayScore: 2,
-      homeScore: 1,
-      pointsTotal: 3,
-      oddsType: "totals",
-      drawEligible: false,
-      drawTeam: "Austin FC",
-      strAwayTeam: "Austin FC",
-      strHomeTeam: "Houston Dynamo",
-      pick: "under",
-      odds: {
-        overOdds: -115,
-        underOdds: 115,
-        total: 3,
-      },
-    };
-    const res = getPickResult(push);
-    expect(res.result).toEqual("push");
-    expect(res.pointsAwarded).toEqual(0);
-  });
-});
+// describe("getPickResult", () => {
+//   test("Testing pointspread -- should return win when an away team favorite covers spread and pick is away team", () => {
+//     const awayTeamCoverCorrectPick: MatchupResult = {
+//       awayScore: 10,
+//       homeScore: 3,
+//       pointsTotal: 13,
+//       oddsType: "pointspread",
+//       drawEligible: false,
+//       drawTeam: null,
+//       strAwayTeam: "Cowboys",
+//       strHomeTeam: "Cardinals",
+//       pick: "Cowboys",
+//       odds: {
+//         homeOdds: -140,
+//         awayOdds: 115,
+//         homeSpread: 3,
+//         awaySpread: -3,
+//       },
+//     };
+//     const res = getPickResult(awayTeamCoverCorrectPick);
+//     expect(res.result).toEqual("win");
+//     expect(res.pointsAwarded).toEqual(115);
+//   });
+//   test("Testing pointspread -- should return loss when an away team favorite covers spread and pick is home team", () => {
+//     const awayTeamCoverIncorrectPick: MatchupResult = {
+//       awayScore: 10,
+//       homeScore: 3,
+//       pointsTotal: 13,
+//       oddsType: "pointspread",
+//       drawEligible: false,
+//       drawTeam: null,
+//       strAwayTeam: "Cowboys",
+//       strHomeTeam: "Cardinals",
+//       pick: "Cardinals",
+//       odds: {
+//         homeOdds: -140,
+//         awayOdds: 115,
+//         homeSpread: 3,
+//         awaySpread: -3,
+//       },
+//     };
+//     const res = getPickResult(awayTeamCoverIncorrectPick);
+//     expect(res.result).toEqual("loss");
+//     expect(res.pointsAwarded).toEqual(0);
+//   });
+//   test("Testing pointspread -- should return win when away team does not cover spread and pick is home team", () => {
+//     const awayTeamNotCoverCorrectPick: MatchupResult = {
+//       awayScore: 10,
+//       homeScore: 9,
+//       pointsTotal: 13,
+//       oddsType: "pointspread",
+//       drawEligible: false,
+//       drawTeam: null,
+//       strAwayTeam: "Cowboys",
+//       strHomeTeam: "Cardinals",
+//       pick: "Cardinals",
+//       odds: {
+//         homeOdds: -140,
+//         awayOdds: 115,
+//         homeSpread: 3,
+//         awaySpread: -3,
+//       },
+//     };
+//     const res = getPickResult(awayTeamNotCoverCorrectPick);
+//     expect(res.result).toEqual("win");
+//     expect(res.pointsAwarded).toEqual(71.43);
+//   });
+//   test("Testing pointspread -- should return loss when away team does not cover spread and pick is away team", () => {
+//     const awayTeamNotCoverIncorrectPick: MatchupResult = {
+//       awayScore: 10,
+//       homeScore: 9,
+//       pointsTotal: 13,
+//       oddsType: "pointspread",
+//       drawEligible: false,
+//       drawTeam: null,
+//       strAwayTeam: "Cowboys",
+//       strHomeTeam: "Cardinals",
+//       pick: "Cowboys",
+//       odds: {
+//         homeOdds: -140,
+//         awayOdds: 115,
+//         homeSpread: 3,
+//         awaySpread: -3,
+//       },
+//     };
+//     const res = getPickResult(awayTeamNotCoverIncorrectPick);
+//     expect(res.result).toEqual("loss");
+//     expect(res.pointsAwarded).toEqual(0);
+//   });
+//   test("Testing pointspread -- should return win when a home team favorite covers spread and pick is home team", () => {
+//     const homeTeamCoverCorrectPick: MatchupResult = {
+//       awayScore: 6,
+//       homeScore: 10,
+//       pointsTotal: 16,
+//       oddsType: "pointspread",
+//       drawEligible: false,
+//       drawTeam: null,
+//       strAwayTeam: "Cowboys",
+//       strHomeTeam: "Cardinals",
+//       pick: "Cardinals",
+//       odds: {
+//         homeOdds: -110,
+//         awayOdds: 115,
+//         homeSpread: -3,
+//         awaySpread: 3,
+//       },
+//     };
+//     const res = getPickResult(homeTeamCoverCorrectPick);
+//     expect(res.result).toEqual("win");
+//     expect(res.pointsAwarded).toEqual(90.91);
+//   });
+//   test("Testing pointspread -- should return loss when an home team favorite covers spread and pick is away team", () => {
+//     const homeTeamCoverIncorrectPick: MatchupResult = {
+//       awayScore: 6,
+//       homeScore: 10,
+//       pointsTotal: 16,
+//       oddsType: "pointspread",
+//       drawEligible: false,
+//       drawTeam: null,
+//       strAwayTeam: "Cowboys",
+//       strHomeTeam: "Cardinals",
+//       pick: "Cowboys",
+//       odds: {
+//         homeOdds: -140,
+//         awayOdds: 115,
+//         homeSpread: -3,
+//         awaySpread: 3,
+//       },
+//     };
+//     const res = getPickResult(homeTeamCoverIncorrectPick);
+//     expect(res.result).toEqual("loss");
+//     expect(res.pointsAwarded).toEqual(0);
+//   });
+//   test("Testing pointspread -- should return win when home team favorite does not cover spread and pick is away team", () => {
+//     const homeTeamNotCoverCorrectPick: MatchupResult = {
+//       awayScore: 9,
+//       homeScore: 10,
+//       pointsTotal: 19,
+//       oddsType: "pointspread",
+//       drawEligible: false,
+//       drawTeam: null,
+//       strAwayTeam: "Cowboys",
+//       strHomeTeam: "Cardinals",
+//       pick: "Cowboys",
+//       odds: {
+//         homeOdds: -140,
+//         awayOdds: 115,
+//         homeSpread: -3,
+//         awaySpread: 3,
+//       },
+//     };
+//     const res = getPickResult(homeTeamNotCoverCorrectPick);
+//     expect(res.result).toEqual("win");
+//     expect(res.pointsAwarded).toEqual(115);
+//   });
+//   test("Testing pointspread -- should return loss when home team favorite does not cover spread and pick is home team", () => {
+//     const homeTeamNotCoverIncorrectPick: MatchupResult = {
+//       awayScore: 9,
+//       homeScore: 10,
+//       pointsTotal: 19,
+//       oddsType: "pointspread",
+//       drawEligible: false,
+//       drawTeam: null,
+//       strAwayTeam: "Cowboys",
+//       strHomeTeam: "Cardinals",
+//       pick: "Cardinals",
+//       odds: {
+//         homeOdds: -140,
+//         awayOdds: 115,
+//         homeSpread: -3,
+//         awaySpread: 3,
+//       },
+//     };
+//     const res = getPickResult(homeTeamNotCoverIncorrectPick);
+//     expect(res.result).toEqual("loss");
+//     expect(res.pointsAwarded).toEqual(0);
+//   });
+//   test("Testing pointspread -- should return push for a draw ineligible matchup where the spread is a whole number and away favorite team wins by exactly that amount", () => {
+//     const homeTeamNotCoverIncorrectPick: MatchupResult = {
+//       awayScore: 21,
+//       homeScore: 14,
+//       pointsTotal: 35,
+//       oddsType: "pointspread",
+//       drawEligible: false,
+//       drawTeam: null,
+//       strAwayTeam: "Cowboys",
+//       strHomeTeam: "Cardinals",
+//       pick: "Cowboys",
+//       odds: {
+//         homeOdds: -140,
+//         awayOdds: 115,
+//         homeSpread: 7,
+//         awaySpread: -7,
+//       },
+//     };
+//     const res = getPickResult(homeTeamNotCoverIncorrectPick);
+//     expect(res.result).toEqual("push");
+//     expect(res.pointsAwarded).toEqual(0);
+//   });
+//   test("Testing pointspread -- should return push for a draw ineligible matchup where the spread is a whole number and home favorite team wins by exactly that amount", () => {
+//     const homeTeamNotCoverIncorrectPick: MatchupResult = {
+//       awayScore: 7,
+//       homeScore: 14,
+//       pointsTotal: 35,
+//       oddsType: "pointspread",
+//       drawEligible: false,
+//       drawTeam: null,
+//       strAwayTeam: "Cowboys",
+//       strHomeTeam: "Cardinals",
+//       pick: "Cowboys",
+//       odds: {
+//         homeOdds: -140,
+//         awayOdds: 115,
+//         homeSpread: -7,
+//         awaySpread: 7,
+//       },
+//     };
+//     const res = getPickResult(homeTeamNotCoverIncorrectPick);
+//     expect(res.result).toEqual("push");
+//     expect(res.pointsAwarded).toEqual(0);
+//   });
+//   test("Testing pointspread -- should return push for a draw ineligible matchup when spread is 0 and game ends in a draw", () => {
+//     const homeTeamNotCoverIncorrectPick: MatchupResult = {
+//       awayScore: 9,
+//       homeScore: 9,
+//       pointsTotal: 18,
+//       oddsType: "pointspread",
+//       drawEligible: false,
+//       drawTeam: null,
+//       strAwayTeam: "Cowboys",
+//       strHomeTeam: "Cardinals",
+//       pick: "Cardinals",
+//       odds: {
+//         homeOdds: -140,
+//         awayOdds: 115,
+//         homeSpread: 0,
+//         awaySpread: 0,
+//       },
+//     };
+//     const res = getPickResult(homeTeamNotCoverIncorrectPick);
+//     expect(res.result).toEqual("push");
+//     expect(res.pointsAwarded).toEqual(0);
+//   });
+//   // money-line
+//   test("Testing money-line -- should return push for a draw ineligible matchup when spread is 0 and game ends in a draw", () => {
+//     const push: MatchupResult = {
+//       awayScore: 9,
+//       homeScore: 9,
+//       pointsTotal: 18,
+//       oddsType: "money-line",
+//       drawEligible: false,
+//       drawTeam: null,
+//       strAwayTeam: "Cowboys",
+//       strHomeTeam: "Cardinals",
+//       pick: "Cardinals",
+//       odds: {
+//         homeOdds: -140,
+//         awayOdds: 115,
+//         drawOdds: 0,
+//       },
+//     };
+//     const res = getPickResult(push);
+//     expect(res.result).toEqual("push");
+//     expect(res.pointsAwarded).toEqual(0);
+//   });
+//   test("Testing money-line -- should return a win for home team", () => {
+//     const homeWin: MatchupResult = {
+//       awayScore: 9,
+//       homeScore: 21,
+//       pointsTotal: 18,
+//       oddsType: "money-line",
+//       drawEligible: false,
+//       drawTeam: null,
+//       strAwayTeam: "Cowboys",
+//       strHomeTeam: "Cardinals",
+//       pick: "Cardinals",
+//       odds: {
+//         homeOdds: -140,
+//         awayOdds: 115,
+//         drawOdds: 0,
+//       },
+//     };
+//     const res = getPickResult(homeWin);
+//     expect(res.result).toEqual("win");
+//     expect(res.pointsAwarded).toEqual(71.43);
+//   });
+//   test("Testing money-line -- should return a win for away team", () => {
+//     const awayWin: MatchupResult = {
+//       awayScore: 9,
+//       homeScore: 3,
+//       pointsTotal: 18,
+//       oddsType: "money-line",
+//       drawEligible: false,
+//       drawTeam: null,
+//       strAwayTeam: "Cowboys",
+//       strHomeTeam: "Cardinals",
+//       pick: "Cowboys",
+//       odds: {
+//         homeOdds: -140,
+//         awayOdds: 115,
+//         drawOdds: 0,
+//       },
+//     };
+//     const res = getPickResult(awayWin);
+//     expect(res.result).toEqual("win");
+//     expect(res.pointsAwarded).toEqual(115);
+//   });
+//   test("Testing money-line -- should return a loss for home team", () => {
+//     const homeLoss: MatchupResult = {
+//       awayScore: 9,
+//       homeScore: 3,
+//       pointsTotal: 18,
+//       oddsType: "money-line",
+//       drawEligible: false,
+//       drawTeam: null,
+//       strAwayTeam: "Cowboys",
+//       strHomeTeam: "Cardinals",
+//       pick: "Cardinals",
+//       odds: {
+//         homeOdds: -140,
+//         awayOdds: 115,
+//         drawOdds: 0,
+//       },
+//     };
+//     const res = getPickResult(homeLoss);
+//     expect(res.result).toEqual("loss");
+//     expect(res.pointsAwarded).toEqual(0);
+//   });
+//   test("Testing money-line -- should return a loss for away team", () => {
+//     const awayLoss: MatchupResult = {
+//       awayScore: 9,
+//       homeScore: 13,
+//       pointsTotal: 18,
+//       oddsType: "money-line",
+//       drawEligible: false,
+//       drawTeam: null,
+//       strAwayTeam: "Cowboys",
+//       strHomeTeam: "Cardinals",
+//       pick: "Cowboys",
+//       odds: {
+//         homeOdds: -140,
+//         awayOdds: 115,
+//         drawOdds: 0,
+//       },
+//     };
+//     const res = getPickResult(awayLoss);
+//     expect(res.result).toEqual("loss");
+//     expect(res.pointsAwarded).toEqual(0);
+//   });
+//   test("Testing money-line -- should return a win for away team in a draw", () => {
+//     const awayWinOnADraw: MatchupResult = {
+//       awayScore: 2,
+//       homeScore: 2,
+//       pointsTotal: 4,
+//       oddsType: "money-line",
+//       drawEligible: true,
+//       drawTeam: "Austin FC",
+//       strAwayTeam: "Austin FC",
+//       strHomeTeam: "Houston Dynamo",
+//       pick: "Austin FC",
+//       odds: {
+//         homeOdds: -140,
+//         awayOdds: 115,
+//         drawOdds: 250,
+//       },
+//     };
+//     const res = getPickResult(awayWinOnADraw);
+//     expect(res.result).toEqual("win");
+//     expect(res.pointsAwarded).toEqual(33);
+//   });
+//   test("Testing money-line -- should return a win for hme team in a draw", () => {
+//     const homeWinOnADraw: MatchupResult = {
+//       awayScore: 2,
+//       homeScore: 2,
+//       pointsTotal: 4,
+//       oddsType: "money-line",
+//       drawEligible: true,
+//       drawTeam: "Houston Dynamo",
+//       strAwayTeam: "Austin FC",
+//       strHomeTeam: "Houston Dynamo",
+//       pick: "Houston Dynamo",
+//       odds: {
+//         homeOdds: -140,
+//         awayOdds: 115,
+//         drawOdds: 250,
+//       },
+//     };
+//     const res = getPickResult(homeWinOnADraw);
+//     expect(res.result).toEqual("win");
+//     expect(res.pointsAwarded).toEqual(14.99);
+//   });
+//   test("Testing money-line -- should return a loss for away team in a draw", () => {
+//     const awayLossOnADraw: MatchupResult = {
+//       awayScore: 2,
+//       homeScore: 2,
+//       pointsTotal: 4,
+//       oddsType: "money-line",
+//       drawEligible: true,
+//       drawTeam: "Houston Dynamo",
+//       strAwayTeam: "Austin FC",
+//       strHomeTeam: "Houston Dynamo",
+//       pick: "Austin FC",
+//       odds: {
+//         homeOdds: -140,
+//         awayOdds: 115,
+//         drawOdds: 250,
+//       },
+//     };
+//     const res = getPickResult(awayLossOnADraw);
+//     expect(res.result).toEqual("loss");
+//     expect(res.pointsAwarded).toEqual(0);
+//   });
+//   test("Testing money-line -- should return a loss for home team in a draw", () => {
+//     const homeLossOnADraw: MatchupResult = {
+//       awayScore: 2,
+//       homeScore: 2,
+//       pointsTotal: 4,
+//       oddsType: "money-line",
+//       drawEligible: true,
+//       drawTeam: "Austin FC",
+//       strAwayTeam: "Austin FC",
+//       strHomeTeam: "Houston Dynamo",
+//       pick: "Houston Dynamo",
+//       odds: {
+//         homeOdds: -140,
+//         awayOdds: 115,
+//         drawOdds: 250,
+//       },
+//     };
+//     const res = getPickResult(homeLossOnADraw);
+//     expect(res.result).toEqual("loss");
+//     expect(res.pointsAwarded).toEqual(0);
+//   });
+//   test("Testing totals -- should return a win for over", () => {
+//     const overWin: MatchupResult = {
+//       awayScore: 2,
+//       homeScore: 2,
+//       pointsTotal: 4,
+//       oddsType: "totals",
+//       drawEligible: false,
+//       drawTeam: "Austin FC",
+//       strAwayTeam: "Austin FC",
+//       strHomeTeam: "Houston Dynamo",
+//       pick: "over",
+//       odds: {
+//         overOdds: -115,
+//         underOdds: 115,
+//         total: 3.5,
+//       },
+//     };
+//     const res = getPickResult(overWin);
+//     expect(res.result).toEqual("win");
+//     expect(res.pointsAwarded).toEqual(86.96);
+//   });
+//   test("Testing totals -- should return a win for under", () => {
+//     const underWin: MatchupResult = {
+//       awayScore: 2,
+//       homeScore: 2,
+//       pointsTotal: 4,
+//       oddsType: "totals",
+//       drawEligible: false,
+//       drawTeam: "Austin FC",
+//       strAwayTeam: "Austin FC",
+//       strHomeTeam: "Houston Dynamo",
+//       pick: "under",
+//       odds: {
+//         overOdds: -115,
+//         underOdds: 115,
+//         total: 4.5,
+//       },
+//     };
+//     const res = getPickResult(underWin);
+//     expect(res.result).toEqual("win");
+//     expect(res.pointsAwarded).toEqual(115);
+//   });
+//   test("Testing totals -- should return a loss for over", () => {
+//     const overLoss: MatchupResult = {
+//       awayScore: 2,
+//       homeScore: 0,
+//       pointsTotal: 2,
+//       oddsType: "totals",
+//       drawEligible: false,
+//       drawTeam: "Austin FC",
+//       strAwayTeam: "Austin FC",
+//       strHomeTeam: "Houston Dynamo",
+//       pick: "over",
+//       odds: {
+//         overOdds: -115,
+//         underOdds: 115,
+//         total: 2.5,
+//       },
+//     };
+//     const res = getPickResult(overLoss);
+//     expect(res.result).toEqual("loss");
+//     expect(res.pointsAwarded).toEqual(0);
+//   });
+//   test("Testing totals -- should return a loss for under", () => {
+//     const underLoss: MatchupResult = {
+//       awayScore: 2,
+//       homeScore: 1,
+//       pointsTotal: 3,
+//       oddsType: "totals",
+//       drawEligible: false,
+//       drawTeam: "Austin FC",
+//       strAwayTeam: "Austin FC",
+//       strHomeTeam: "Houston Dynamo",
+//       pick: "under",
+//       odds: {
+//         overOdds: -115,
+//         underOdds: 115,
+//         total: 2.5,
+//       },
+//     };
+//     const res = getPickResult(underLoss);
+//     expect(res.result).toEqual("loss");
+//     expect(res.pointsAwarded).toEqual(0);
+//   });
+//   test("Testing totals -- should return a push", () => {
+//     const push: MatchupResult = {
+//       awayScore: 2,
+//       homeScore: 1,
+//       pointsTotal: 3,
+//       oddsType: "totals",
+//       drawEligible: false,
+//       drawTeam: "Austin FC",
+//       strAwayTeam: "Austin FC",
+//       strHomeTeam: "Houston Dynamo",
+//       pick: "under",
+//       odds: {
+//         overOdds: -115,
+//         underOdds: 115,
+//         total: 3,
+//       },
+//     };
+//     const res = getPickResult(push);
+//     expect(res.result).toEqual("push");
+//     expect(res.pointsAwarded).toEqual(0);
+//   });
+// });
 
 describe("getPointsAwarded", () => {
   test("returns the amount won on positive odds", () => {
@@ -684,5 +685,15 @@ describe("getWinOrDrawOdds", () => {
     expect(getWinOrDrawOdds(257, 400)).toBe(108);
     expect(getWinOrDrawOdds(-110, 220)).toBe(-500);
     expect(getWinOrDrawOdds(370, 295)).toBe(115);
+  });
+});
+
+describe("calculateParlayPayout", () => {
+  test("given one teams odds and the draw odds, it calculates the win or draw odds", () => {
+    const BET_SIZE = 100;
+    expect(calculateParlayPayout(BET_SIZE, [130, -150])).toBe(BET_SIZE + 284.1);
+    expect(calculateParlayPayout(BET_SIZE, [150, 150])).toBe(BET_SIZE + 525);
+    expect(calculateParlayPayout(BET_SIZE, [-110, -110])).toBe(BET_SIZE + 264.81);
+    expect(calculateParlayPayout(BET_SIZE, [-10000, -155])).toBe(BET_SIZE + 66.65);
   });
 });

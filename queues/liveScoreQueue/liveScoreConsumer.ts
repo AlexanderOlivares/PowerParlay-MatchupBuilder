@@ -8,6 +8,7 @@ import { MATCHUP_STATUSES, leagueLookup } from "../../utils/leagueMap.ts";
 import "moment-timezone";
 import { handleNetworkError } from "../../utils/matchupFinderUtils.ts";
 import {
+  calculateParlayPayout,
   gameTimeInPast,
   getLiveScoreQueueDelay,
   getMsToGameTime,
@@ -17,7 +18,7 @@ import {
   getSelectFieldsForOddsType,
 } from "../../utils/liveScoreQueueUtils.ts";
 import { isOddsType } from "../../utils/matchupBuilderUtils.ts";
-import { MatchupResult, OddsBasedOnOddsType } from "../../interfaces/queue.ts";
+import { MatchupResult, OddsBasedOnOddsType, PickAndOddsId } from "../../interfaces/queue.ts";
 
 dotenv.config({ path: "../../.env" });
 
@@ -311,32 +312,39 @@ queue.process(async (job: any) => {
         }
 
         const isParlayWin = parlay.Pick.every(pick => ["win", "push"].includes(pick.result));
+        const oddsOfWinningPicks: number[] = [];
 
         if (isParlayWin) {
-          // single game score like normal
-          if (parlay.Pick.length === 1) {
-            const matchup = await tx.matchups.findUnique({
-              where: { id: parlay.Pick[0].matchupId },
-              select: {
-                oddsType: true,
-                awayScore: true,
-                homeScore: true,
-                pointsTotal: true,
-                drawEligible: true,
-                drawTeam: true,
-                strAwayTeam: true,
-                strHomeTeam: true,
-              },
-            });
-            if (!matchup) {
-              logger.error({
-                message: "matchup not found when scoring parlay",
-                parlayId: parlay.id,
-                matchupId: parlay.Pick[0].matchupId,
-              });
-              continue;
-            }
+          const matchupToPickAndOddsId = parlay.Pick.reduce((map, { matchupId, oddsId, pick }) => {
+            map.set(matchupId, { oddsId, pick });
+            return map;
+          }, new Map<string, PickAndOddsId>());
 
+          const matchups = await tx.matchups.findMany({
+            where: { id: { in: parlay.Pick.map(({ matchupId }) => matchupId) } },
+            select: {
+              id: true,
+              oddsType: true,
+              awayScore: true,
+              homeScore: true,
+              pointsTotal: true,
+              drawEligible: true,
+              drawTeam: true,
+              strAwayTeam: true,
+              strHomeTeam: true,
+            },
+          });
+
+          if (!matchups.length) {
+            logger.error({
+              message: "matchup not found when scoring parlay",
+              parlayId: parlay.id,
+              matchupId: parlay.Pick[0].matchupId,
+            });
+            continue;
+          }
+
+          for (const matchup of matchups) {
             const {
               oddsType,
               awayScore,
@@ -346,21 +354,32 @@ queue.process(async (job: any) => {
               drawTeam,
               strAwayTeam,
               strHomeTeam,
+              id,
             } = matchup;
 
-            if (!isOddsType(matchup.oddsType)) {
+            if (!isOddsType(oddsType)) {
               logger.error({
                 message: "invalid odds type found when scoring parlay",
                 parlayId: parlay.id,
-                matchupId: parlay.Pick[0].matchupId,
+                matchupId: id,
               });
               continue;
             }
 
-            const select = getSelectFieldsForOddsType(matchup.oddsType);
+            const select = getSelectFieldsForOddsType(oddsType);
+            const { pick, oddsId } = matchupToPickAndOddsId.get(id) ?? {};
+
+            if (!pick || !oddsId) {
+              logger.error({
+                message: "couldn't parse pick or oddsId from map",
+                parlayId: parlay.id,
+                matchupId: matchup.id,
+              });
+              continue;
+            }
 
             const odds = (await tx.odds.findUnique({
-              where: { id: parlay.Pick[0].oddsId },
+              where: { id: oddsId },
               select,
             })) as OddsBasedOnOddsType;
 
@@ -373,36 +392,47 @@ queue.process(async (job: any) => {
               drawTeam,
               strAwayTeam,
               strHomeTeam,
-              pick: parlay.Pick[0].pick,
+              pick,
               odds,
             };
 
             const { result, winningOdds } = getPickResult(matchupResult);
-
-            if (!winningOdds && result === "push") {
-              await tx.parlay.update({
-                where: { id: parlay.id },
-                data: { locked: false },
-              });
-            }
-
-            if (!winningOdds) {
-              logger.error({
-                message: "no winning odds found when scoring parlay",
+            if (result !== "win" || !winningOdds) {
+              logger.warn({
+                message:
+                  "game not marked as win, excluding from winning odds when calculating pointsAwarded",
                 parlayId: parlay.id,
-                matchupId: parlay.Pick[0].matchupId,
+                matchupId: matchup.id,
+                result,
               });
               continue;
             }
+            oddsOfWinningPicks.push(winningOdds);
+          }
 
-            const pointsAwarded = getPointsAwarded(winningOdds);
+          // this should only happen if all parlay picks are pushes
+          if (!oddsOfWinningPicks.length) {
+            await tx.parlay.update({
+              where: { id: parlay.id },
+              data: { locked: false },
+              // TODO if existing points keep those here. nothing should be won/lost
+            });
+            continue;
+          }
 
+          if (oddsOfWinningPicks.length === 1) {
+            const pointsAwarded = getPointsAwarded(oddsOfWinningPicks[0]);
             await tx.parlay.update({
               where: { id: parlay.id },
               data: { pointsAwarded, locked: false },
             });
           } else {
-            // TODO use parlay scoring
+            const BET_SIZE = 100; // this will be dynamic
+            const pointsAwarded = calculateParlayPayout(BET_SIZE, oddsOfWinningPicks);
+            await tx.parlay.update({
+              where: { id: parlay.id },
+              data: { pointsAwarded, locked: false },
+            });
           }
         }
       }
@@ -410,7 +440,7 @@ queue.process(async (job: any) => {
 
     logger.info({
       location,
-      message: "Success -- completed matchup finished tx to unlock matchup/picks",
+      message: "Success -- completed matchup finished tx to unlock matchup/picks/parlays",
       matchupId: id,
       awayScore,
       homeScore,

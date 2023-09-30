@@ -100,3 +100,8 @@ export type OddsTypeSelectFields =
   | MoneylineSelectFields
   | TotalsSelectFields
   | PointSpreadSelectFields;
+
+export interface PickAndOddsId {
+  pick: string;
+  oddsId: string;
+}
