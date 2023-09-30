@@ -12,6 +12,7 @@ import {
   getLiveScoreQueueDelay,
   getMsToGameTime,
   getPickResult,
+  getPointsAwarded,
   getScoresAsNums,
   getSelectFieldsForOddsType,
 } from "../../utils/liveScoreQueueUtils.ts";
@@ -210,7 +211,7 @@ queue.process(async (job: any) => {
     logger.error({
       message,
       location,
-      anomalyData: { matchupId: id, league },
+      anomalyData: { matchupId: id, league, intHomeScore, intAwayScore, strStatus },
     });
     throw new Error(message);
   }
@@ -283,14 +284,13 @@ queue.process(async (job: any) => {
           odds,
         };
 
-        const { result, pointsAwarded } = getPickResult(matchupResult);
+        const { result } = getPickResult(matchupResult);
 
         await tx.pick.update({
           where: { id },
           data: {
             result,
             locked: false,
-            pointsAwarded,
           },
         });
       }
@@ -302,14 +302,108 @@ queue.process(async (job: any) => {
 
       for (const parlay of parlays) {
         const onePickHasLost = parlay.Pick.some(pick => pick.result === "loss");
-        const allPicksHaveResult = parlay.Pick.every(pick =>
-          ["win", "push", "loss"].includes(pick.result)
-        );
-        if (onePickHasLost || allPicksHaveResult) {
+
+        if (onePickHasLost) {
           await tx.parlay.update({
             where: { id: parlay.id },
-            data: { locked: false },
+            data: { pointsAwarded: 0, locked: false },
           });
+        }
+
+        const isParlayWin = parlay.Pick.every(pick => ["win", "push"].includes(pick.result));
+
+        if (isParlayWin) {
+          // single game score like normal
+          if (parlay.Pick.length === 1) {
+            const matchup = await tx.matchups.findUnique({
+              where: { id: parlay.Pick[0].matchupId },
+              select: {
+                oddsType: true,
+                awayScore: true,
+                homeScore: true,
+                pointsTotal: true,
+                drawEligible: true,
+                drawTeam: true,
+                strAwayTeam: true,
+                strHomeTeam: true,
+              },
+            });
+            if (!matchup) {
+              logger.error({
+                message: "matchup not found when scoring parlay",
+                parlayId: parlay.id,
+                matchupId: parlay.Pick[0].matchupId,
+              });
+              continue;
+            }
+
+            const {
+              oddsType,
+              awayScore,
+              homeScore,
+              pointsTotal,
+              drawEligible,
+              drawTeam,
+              strAwayTeam,
+              strHomeTeam,
+            } = matchup;
+
+            if (!isOddsType(matchup.oddsType)) {
+              logger.error({
+                message: "invalid odds type found when scoring parlay",
+                parlayId: parlay.id,
+                matchupId: parlay.Pick[0].matchupId,
+              });
+              continue;
+            }
+
+            const select = getSelectFieldsForOddsType(matchup.oddsType);
+
+            const odds = (await tx.odds.findUnique({
+              where: { id: parlay.Pick[0].oddsId },
+              select,
+            })) as OddsBasedOnOddsType;
+
+            const matchupResult: MatchupResult = {
+              awayScore: Number(awayScore),
+              homeScore: Number(homeScore),
+              pointsTotal: Number(pointsTotal),
+              oddsType,
+              drawEligible,
+              drawTeam,
+              strAwayTeam,
+              strHomeTeam,
+              pick: parlay.Pick[0].pick,
+              odds,
+            };
+
+            const { result, winningOdds } = getPickResult(matchupResult);
+
+            if (!winningOdds && result === "push") {
+              await tx.parlay.update({
+                where: { id: parlay.id },
+                data: { locked: false },
+              });
+            }
+
+            if (!winningOdds) {
+              logger.error({
+                message: "no winning odds found when scoring parlay",
+                parlayId: parlay.id,
+                matchupId: parlay.Pick[0].matchupId,
+              });
+              continue;
+            }
+
+            const pointsAwarded = getPointsAwarded(winningOdds);
+
+            await tx.parlay.update({
+              where: { id: parlay.id },
+              data: { pointsAwarded, locked: false },
+            });
+          } else {
+            // TODO use parlay scoring
+          }
         }
       }
     });

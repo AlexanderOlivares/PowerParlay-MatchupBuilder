@@ -17,12 +17,12 @@ export const leagueLookup: LeagueLookup = {
   "4479": "college-football",
   //  "4387":   "nba-basketball",
   //  "4607":   "ncaa-basketball",
-  //  "4380":   "nhl-hockey",
+  "4380": "nhl-hockey",
 };
 
 export const MATCHUP_STATUSES = {
   // as explained here https://www.thesportsdb.com/forum_topic.php?t=5236
   notStarted: ["NS"],
-  gameFinished: ["FT", "AOT", "AET", "PEN", "Match Finished"],
-  shouldPush: ["POST", "PST", "SUSP", "CANC", "ABD", "AWD", "WO"],
+  gameFinished: ["FT", "AOT", "AET", "PEN", "Match Finished", "AP"],
+  shouldPush: ["POST", "PST", "SUSP", "CANC", "ABD", "AWD", "WO", "INTR", "INT"],
 };

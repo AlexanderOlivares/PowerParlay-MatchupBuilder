@@ -94,84 +94,78 @@ export function getPickResult({
   pick, // team name, over, or under
   odds,
 }: MatchupResult) {
-  const ZeroPointsAwarded = { pointsAwarded: 0 };
+  const noWinningOdds = { winningOdds: null };
   if (oddsType === "totals" && isTotalsOdds(odds)) {
-    if (pointsTotal === odds.total) return { result: "push", ...ZeroPointsAwarded };
+    if (pointsTotal === odds.total) return { result: "push", ...noWinningOdds };
     const { overOdds, underOdds } = odds;
     const outcome = pointsTotal > odds.total ? "over" : "under";
     if (pick === outcome) {
       // pick is a win
-      const pointsAwarded =
-        pick === "over" ? getPointsAwarded(overOdds) : getPointsAwarded(underOdds);
-      return { result: "win", pointsAwarded };
+      const winningOdds = pick === "over" ? overOdds : underOdds;
+      return { result: "win", winningOdds };
     }
-    return { result: "loss", ...ZeroPointsAwarded };
+    return { result: "loss", ...noWinningOdds };
   }
 
   if (oddsType === "money-line" && isMoneylineOdds(odds)) {
     const { awayOdds, homeOdds, drawOdds } = odds;
     const isDraw = awayScore === homeScore;
     // Football offers no draw odds but can end in a tie
-    if (isDraw && !drawEligible) return { result: "push", ...ZeroPointsAwarded };
+    if (isDraw && !drawEligible) return { result: "push", ...noWinningOdds };
 
     // Used for soccer where one team will be picked to win or draw
     if (isDraw) {
-      if (pick !== drawTeam) return { result: "loss", ...ZeroPointsAwarded };
+      if (pick !== drawTeam) return { result: "loss", ...noWinningOdds };
       const pickedTeamOdds = drawTeam === strAwayTeam ? awayOdds : homeOdds;
       const winOrDrawOdds = getWinOrDrawOdds(pickedTeamOdds, drawOdds);
-      return { result: "win", pointsAwarded: getPointsAwarded(winOrDrawOdds) };
+      return { result: "win", winningOdds: winOrDrawOdds };
     }
 
     const winner = awayScore > homeScore ? strAwayTeam : strHomeTeam;
     if (pick === winner) {
-      const pointsAwarded =
-        pick === strAwayTeam ? getPointsAwarded(awayOdds) : getPointsAwarded(homeOdds);
-      return { result: "win", pointsAwarded };
+      const winningOdds = pick === strAwayTeam ? awayOdds : homeOdds;
+      return { result: "win", winningOdds };
     }
-    return { result: "loss", ...ZeroPointsAwarded };
+    return { result: "loss", ...noWinningOdds };
   }
 
   if (oddsType === "pointspread" && isPointSpreadOdds(odds)) {
     const { awaySpread, homeSpread, awayOdds, homeOdds } = odds;
     // Football edge case where spread is 0 and game ends in tie
     if (awaySpread === 0 && homeScore === awayScore) {
-      return { result: "push", ...ZeroPointsAwarded };
+      return { result: "push", ...noWinningOdds };
     }
 
     // away team is favorite
     if (awaySpread < homeSpread) {
       if (awayScore - Math.abs(awaySpread) === homeScore) {
-        return { result: "push", ...ZeroPointsAwarded };
+        return { result: "push", ...noWinningOdds };
       }
       const awayTeamCoveredSpread = awayScore - Math.abs(awaySpread) > homeScore;
       if (awayTeamCoveredSpread) {
-        const pointsAwarded = getPointsAwarded(awayOdds);
         return pick === strAwayTeam
-          ? { result: "win", pointsAwarded }
-          : { result: "loss", ...ZeroPointsAwarded };
+          ? { result: "win", awayOdds }
+          : { result: "loss", ...noWinningOdds };
       }
-      const pointsAwarded = getPointsAwarded(homeOdds);
       return pick === strHomeTeam
-        ? { result: "win", pointsAwarded }
-        : { result: "loss", ...ZeroPointsAwarded };
+        ? { result: "win", homeOdds }
+        : { result: "loss", ...noWinningOdds };
     }
 
     // home team is favorite
     if (awaySpread > homeSpread) {
       if (homeScore - Math.abs(homeSpread) === awayScore) {
-        return { result: "push", ...ZeroPointsAwarded };
+        return { result: "push", ...noWinningOdds };
       }
       const homeTeamCoveredSpread = homeScore - Math.abs(homeSpread) > awayScore;
       if (homeTeamCoveredSpread) {
-        const pointsAwarded = getPointsAwarded(homeOdds);
         return pick === strHomeTeam
-          ? { result: "win", pointsAwarded }
-          : { result: "loss", ...ZeroPointsAwarded };
+          ? { result: "win", homeOdds }
+          : { result: "loss", ...noWinningOdds };
       }
-      const pointsAwarded = getPointsAwarded(awayOdds);
       return pick === strAwayTeam
-        ? { result: "win", pointsAwarded }
-        : { result: "loss", ...ZeroPointsAwarded };
+        ? { result: "win", awayOdds }
+        : { result: "loss", ...noWinningOdds };
     }
   }
   throw new Error("Could not determine pick result. Needs admin review");

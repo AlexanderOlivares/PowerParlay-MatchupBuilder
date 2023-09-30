@@ -74,12 +74,13 @@ model Account {
 }
 
 model Parlay {
-  id        String   @id @unique
-  userId    String
-  locked    Boolean  @default(false)
-  createdAt DateTime @default(now())
-  User      User     @relation(fields: [userId], references: [id])
-  Pick      Pick[]
+  id            String   @id @unique
+  userId        String
+  locked        Boolean  @default(false)
+  pointsAwarded Float    @default(0)
+  createdAt     DateTime @default(now())
+  User          User     @relation(fields: [userId], references: [id])
+  Pick          Pick[]
 }
 
 model Pick {
@@ -92,7 +93,6 @@ model Pick {
   useLatestOdds Boolean
   pick          String
   result        String    @default("TBD")
-  pointsAwarded Float     @default(0)
   createdAt     DateTime  @default(now())
   userUpdatedAt DateTime?
   Matchups      Matchups  @relation(fields: [matchupId], references: [id])
