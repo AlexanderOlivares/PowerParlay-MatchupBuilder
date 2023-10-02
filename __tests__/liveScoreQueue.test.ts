@@ -634,20 +634,20 @@ describe("getLiveScoreQueueDelay", () => {
 describe("getPointsAwarded", () => {
   test("returns the amount won on positive odds", () => {
     const tomorrow = moment.utc().add(1, "day");
-    expect(getPointsAwarded(100)).toBe(100);
-    expect(getPointsAwarded(115)).toBe(115);
-    expect(getPointsAwarded(215)).toBe(215);
-    expect(getPointsAwarded(1000)).toBe(1000);
-    expect(getPointsAwarded(10000)).toBe(10000);
+    expect(getPointsAwarded(100, 100)).toBe(100);
+    expect(getPointsAwarded(100, 115)).toBe(115);
+    expect(getPointsAwarded(100, 215)).toBe(215);
+    expect(getPointsAwarded(100, 1000)).toBe(1000);
+    expect(getPointsAwarded(100, 10000)).toBe(10000);
   });
   test("returns the amount won on negative odds", () => {
     const tomorrow = moment.utc().add(1, "day");
-    expect(getPointsAwarded(-100)).toBe(100);
-    expect(getPointsAwarded(-115)).toBe(86.96);
-    expect(getPointsAwarded(-150)).toBe(66.67);
-    expect(getPointsAwarded(-230)).toBe(43.48);
-    expect(getPointsAwarded(-1000)).toBe(10);
-    expect(getPointsAwarded(-10000)).toBe(1);
+    expect(getPointsAwarded(100, -100)).toBe(100);
+    expect(getPointsAwarded(100, -115)).toBe(86.96);
+    expect(getPointsAwarded(100, -150)).toBe(66.67);
+    expect(getPointsAwarded(100, -230)).toBe(43.48);
+    expect(getPointsAwarded(100, -1000)).toBe(10);
+    expect(getPointsAwarded(100, -10000)).toBe(1);
   });
 });
 

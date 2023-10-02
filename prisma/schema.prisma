@@ -79,6 +79,7 @@ model Parlay {
   locked        Boolean  @default(false)
   pointsAwarded Float    @default(0)
   createdAt     DateTime @default(now())
+  pointsWagered Float    @default(100)
   User          User     @relation(fields: [userId], references: [id])
   Pick          Pick[]
 }

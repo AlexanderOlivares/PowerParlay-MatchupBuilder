@@ -420,15 +420,15 @@ queue.process(async (job: any) => {
             continue;
           }
 
+          const { pointsWagered } = parlay;
           if (oddsOfWinningPicks.length === 1) {
-            const pointsAwarded = getPointsAwarded(oddsOfWinningPicks[0]);
+            const pointsAwarded = getPointsAwarded(pointsWagered, oddsOfWinningPicks[0]);
             await tx.parlay.update({
               where: { id: parlay.id },
               data: { pointsAwarded, locked: false },
             });
           } else {
-            const BET_SIZE = 100; // this will be dynamic
-            const pointsAwarded = calculateParlayPayout(BET_SIZE, oddsOfWinningPicks);
+            const pointsAwarded = calculateParlayPayout(pointsWagered, oddsOfWinningPicks);
             await tx.parlay.update({
               where: { id: parlay.id },
               data: { pointsAwarded, locked: false },

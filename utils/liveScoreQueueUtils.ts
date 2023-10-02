@@ -171,14 +171,13 @@ export function getPickResult({
   throw new Error("Could not determine pick result. Needs admin review");
 }
 
-export function getPointsAwarded(odds: number) {
-  const BET_AMOUNT = 100; // always using 100 dollar bet size
+export function getPointsAwarded(betAmount: number, odds: number) {
   const isPositiveOdds = odds >= 100;
   if (isPositiveOdds) {
-    return odds === 100 ? BET_AMOUNT : odds;
+    return odds === 100 ? betAmount : odds;
   }
   const MULTIPLIER = 100000;
-  const withMultiplier = ((BET_AMOUNT * 100) / Math.abs(odds)) * MULTIPLIER;
+  const withMultiplier = ((betAmount * 100) / Math.abs(odds)) * MULTIPLIER;
   return parseFloat((withMultiplier / MULTIPLIER).toFixed(2));
 }
 
