@@ -70,6 +70,8 @@ const teamIdsMissingAssets: string[] = teamIds.filter(
   eventId => !teamIdsWithAssets.includes(eventId)
 );
 
+logger.warn({ message: `Missing media from ${teamIdsMissingAssets.length} teams` });
+
 async function fetchTeamRequest(teamId: string) {
   return await limiter.schedule(async () => {
     try {
