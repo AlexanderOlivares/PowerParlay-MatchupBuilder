@@ -21,6 +21,8 @@ model Matchups {
   strAwayTeam    String
   strTimestamp   String
   strThumb       String
+  awayBadgeId    String
+  homeBadgeId    String
   oddsType       String
   oddsScope      String
   drawTeam       String?
@@ -128,4 +130,12 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
+}
+
+model Media {
+  teamId   String @id @unique
+  teamName String
+  badgeId  String
+  logoId   String
+  jerseyId String
 }

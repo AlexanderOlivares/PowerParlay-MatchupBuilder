@@ -20,6 +20,8 @@ export interface Matchup {
   strAwayTeam: string;
   strTimestamp: string;
   strThumb: string;
+  awayBadgeId: string;
+  homeBadgeId: string;
   drawEligible: boolean;
   oddsType: string;
   oddsScope: string;

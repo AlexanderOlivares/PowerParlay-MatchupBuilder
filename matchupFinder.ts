@@ -13,8 +13,14 @@ import {
 import { leagueLookup } from "./utils/leagueMap.ts";
 import { EventData, GenericError, Matchup, isGenericError } from "./interfaces/matchup.ts";
 import axios from "axios";
+import Bottleneck from "bottleneck";
 
 dotenv.config();
+
+const limiter = new Bottleneck({
+  maxConcurrent: 2,
+  minTime: 1000,
+});
 
 const prisma = new PrismaClient();
 
@@ -42,13 +48,81 @@ const buildSportRequests = Object.keys(leagueLookup).flatMap(league => {
 
 const allEvents = await Promise.all(buildSportRequests);
 
-const leagueEvents = allEvents.flat().filter(event => event && !isGenericError(event));
+const leagueEvents = allEvents
+  .flat()
+  .filter(event => event && !isGenericError(event)) as EventData[];
 
 const SOCCER_LEAGUES = ["4346", "4328", "4331", "4335", "4334", "4332", "4480", "4481"];
 
 function isDrawEligible(league: string) {
   return SOCCER_LEAGUES.includes(league);
 }
+
+const teamIds = leagueEvents.flatMap(({ idAwayTeam, idHomeTeam }) => [idAwayTeam, idHomeTeam]);
+
+const teamsWithAssets = await prisma.media.findMany({
+  where: { teamId: { in: teamIds } },
+});
+
+const teamIdsWithAssets = teamsWithAssets.map(({ teamId }) => teamId);
+
+const teamIdsMissingAssets: string[] = teamIds.filter(
+  eventId => !teamIdsWithAssets.includes(eventId)
+);
+
+async function fetchTeamRequest(teamId: string) {
+  return await limiter.schedule(async () => {
+    try {
+      const { data } = await axios.get(`${SPORTS_BASE_URL}lookupteam.php?id=${teamId}`);
+      const teamData = data?.teams[0];
+      if (!teamData) return null;
+      const { strTeamBadge, strTeamJersey, strTeamLogo, strTeam } = teamData;
+      if ([strTeamBadge, strTeamJersey, strTeamLogo, strTeam].some(field => !field)) return null;
+      return {
+        [teamId]: {
+          strTeam,
+          strTeamBadge,
+          strTeamJersey,
+          strTeamLogo,
+        },
+      };
+    } catch (error) {
+      handleNetworkError(error);
+      return Promise.resolve(null);
+    }
+  });
+}
+
+const requestsForMediaAssets = [];
+const seenTeamIds = new Map<string, boolean>();
+
+for (const teamId of teamIdsMissingAssets) {
+  if (seenTeamIds.has(teamId)) continue;
+  requestsForMediaAssets.push(fetchTeamRequest(teamId));
+  seenTeamIds.set(teamId, true);
+}
+
+const mediaData = await Promise.all(requestsForMediaAssets);
+
+const teamMediaRecords = mediaData.filter(Boolean).map(team => {
+  // @ts-ignore
+  const [teamId, media] = Object.entries(team)[0];
+  const { strTeamBadge, strTeamJersey, strTeamLogo, strTeam } = media;
+  return {
+    teamId,
+    teamName: strTeam,
+    badgeId: strTeamBadge,
+    logoId: strTeamLogo,
+    jerseyId: strTeamJersey,
+  };
+});
+
+const mediaInsertCount = await prisma.media.createMany({
+  // @ts-ignore
+  data: teamMediaRecords,
+});
+
+logger.info({ message: `Added media for ${mediaInsertCount.count} teams` });
 
 const formattedMatchups: Matchup[] = [];
 
@@ -94,6 +168,22 @@ for (const event of leagueEvents) {
     continue;
   }
 
+  const awayBadgeId =
+    teamsWithAssets.find(team => team.teamId === idAwayTeam)?.badgeId ||
+    teamMediaRecords.find(team => team.teamId === idAwayTeam)?.badgeId;
+
+  const homeBadgeId =
+    teamsWithAssets.find(team => team.teamId === idHomeTeam)?.badgeId ||
+    teamMediaRecords.find(team => team.teamId === idHomeTeam)?.badgeId;
+
+  if (!awayBadgeId || !homeBadgeId) {
+    logger.error({
+      message: "Missing team badge(s)",
+      anomalyData: { gameDate, idEvent, idAwayTeam, idHomeTeam },
+    });
+    continue;
+  }
+
   const matchup: Matchup = {
     id: uuidv4(),
     idEvent,
@@ -106,6 +196,8 @@ for (const event of leagueEvents) {
     strAwayTeam,
     strTimestamp: gameStartTime,
     strThumb,
+    awayBadgeId,
+    homeBadgeId,
     oddsType: "money-line",
     oddsScope: "full-game",
     drawEligible: isDrawEligible(idLeague),
