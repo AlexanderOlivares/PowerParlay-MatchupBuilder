@@ -22,7 +22,7 @@ export const leagueLookup: LeagueLookup = {
 
 export const MATCHUP_STATUSES = {
   // as explained here https://www.thesportsdb.com/forum_topic.php?t=5236
-  notStarted: ["NS"],
+  notStarted: ["NS", "Not Started"],
   gameFinished: ["FT", "AOT", "AET", "PEN", "Match Finished", "AP"],
   shouldPush: ["POST", "PST", "SUSP", "CANC", "ABD", "AWD", "WO", "INTR", "INT"],
 };
