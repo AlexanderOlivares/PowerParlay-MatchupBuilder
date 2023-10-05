@@ -120,7 +120,8 @@ queue.process(async (job: any) => {
   let response;
 
   try {
-    const endpointCacheKey = `${league}/${oddsType}/${oddsScope}.json?date=${date}`;
+    const scopes = oddsType === "money-line" ? "" : `/${oddsType}/${oddsScope}`;
+    const endpointCacheKey = `${league}${scopes}.json?date=${date}`;
     response = await getCachedOdds(endpointCacheKey);
   } catch (error) {
     handleNetworkError(error);
