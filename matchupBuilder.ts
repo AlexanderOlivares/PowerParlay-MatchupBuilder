@@ -149,18 +149,17 @@ const oddsLookup: OddsLookup = lines.reduce((acc: OddsLookup, cv) => {
   return acc;
 }, {});
 
-// logger.info({ message: "debug", oddsLookup });
-// console.log(JSON.stringify(oddsLookup, null, 2));
+logger.info({ message: "debug", oddsLookup });
 
 const adminSelectedMatchups: Matchup[] = [];
 const standardMatchups: Matchup[] = [];
 const existingMatchups: Matchup[] = [];
 
 matchups.forEach(matchup => {
-  // if (matchup.used) {
-  //   existingMatchups.push(matchup);
-  //   return;
-  // }
+  if (matchup.used) {
+    existingMatchups.push(matchup);
+    return;
+  }
   if (matchup.adminSelected) {
     adminSelectedMatchups.push(matchup);
     return;
