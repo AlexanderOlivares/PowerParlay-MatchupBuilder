@@ -102,8 +102,9 @@ const linesRequests = [...leagueNameToOddsType.entries()].map(([league, oddsType
 
   const responses: Promise<LinesResponse>[] = [...oddsTypes].map(async oddsType => {
     try {
+      const scopes = oddsType === "money-line" ? "" : `/${oddsType}/${oddsScope}`;
       const { data } = await axios.get(
-        `${process.env.LINES_BASE_URL}${token}${process.env.LINES_ENDPOINT}${league}/${oddsType}/${oddsScope}.json?date=${targetDate}`
+        `${process.env.LINES_BASE_URL}${token}${process.env.LINES_ENDPOINT}${league}${scopes}.json?date=${targetDate}`
       );
       const gameData = data?.pageProps?.oddsTables?.[0]?.oddsTableModel?.gameRows ?? null;
 
@@ -148,17 +149,18 @@ const oddsLookup: OddsLookup = lines.reduce((acc: OddsLookup, cv) => {
   return acc;
 }, {});
 
-logger.info({ message: "debug", oddsLookup });
+// logger.info({ message: "debug", oddsLookup });
+// console.log(JSON.stringify(oddsLookup, null, 2));
 
 const adminSelectedMatchups: Matchup[] = [];
 const standardMatchups: Matchup[] = [];
 const existingMatchups: Matchup[] = [];
 
 matchups.forEach(matchup => {
-  if (matchup.used) {
-    existingMatchups.push(matchup);
-    return;
-  }
+  // if (matchup.used) {
+  //   existingMatchups.push(matchup);
+  //   return;
+  // }
   if (matchup.adminSelected) {
     adminSelectedMatchups.push(matchup);
     return;
