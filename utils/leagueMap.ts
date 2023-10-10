@@ -26,3 +26,5 @@ export const MATCHUP_STATUSES = {
   gameFinished: ["FT", "AOT", "AET", "PEN", "Match Finished", "AP"],
   shouldPush: ["POST", "PST", "SUSP", "CANC", "ABD", "AWD", "WO", "INTR", "INT"],
 };
+
+export const SOCCER_LEAGUES = ["4346", "4328", "4331", "4335", "4334", "4332", "4480", "4481"];

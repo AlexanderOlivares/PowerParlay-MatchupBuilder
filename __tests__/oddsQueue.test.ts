@@ -1,6 +1,6 @@
 import { Odds } from "../interfaces/matchup";
 import { mandatoryOddsFields } from "../utils/matchupBuilderUtils";
-import { oddsWereUpdated } from "../utils/oddsQueueUtils";
+import { getOddsScopes, oddsWereUpdated } from "../utils/oddsQueueUtils";
 
 describe("oddsWereUpdated", () => {
   it("detects money-line odds updates", async () => {
@@ -133,5 +133,14 @@ describe("oddsWereUpdated", () => {
     };
     expect(oddsWereUpdated(mandatoryOddsFields, "totals", changedLine, latestDbOdds)).toEqual(true);
     expect(oddsWereUpdated(mandatoryOddsFields, "totals", sameLine, latestDbOdds)).toEqual(false);
+  });
+});
+
+describe("getOddsScopes", () => {
+  it("adds /oddsType/oddsScope if not a soccer game with money-line oddstype", async () => {
+    expect(getOddsScopes("money-line", "4346")).toEqual("");
+    expect(getOddsScopes("money-line", "4380")).toEqual("/money-line/full-game");
+    expect(getOddsScopes("totals", "4380")).toEqual("/totals/full-game");
+    expect(getOddsScopes("pointspread", "4380")).toEqual("/pointspread/full-game");
   });
 });

@@ -7,7 +7,7 @@ import { GameRows, GameView, Odds, OddsView } from "../../interfaces/matchup";
 import { PrismaClient } from "@prisma/client";
 import axios from "axios";
 import logger from "../../winstonLogger.ts";
-import { getOddsQueueDelay, oddsWereUpdated } from "../../utils/oddsQueueUtils.ts";
+import { getOddsQueueDelay, getOddsScopes, oddsWereUpdated } from "../../utils/oddsQueueUtils.ts";
 import { leagueLookup } from "../../utils/leagueMap.ts";
 import moment from "moment";
 import "moment-timezone";
@@ -120,7 +120,7 @@ queue.process(async (job: any) => {
   let response;
 
   try {
-    const scopes = oddsType === "money-line" ? "" : `/${oddsType}/${oddsScope}`;
+    const scopes = getOddsScopes(oddsType, idLeague);
     const endpointCacheKey = `${league}${scopes}.json?date=${date}`;
     response = await getCachedOdds(endpointCacheKey);
   } catch (error) {

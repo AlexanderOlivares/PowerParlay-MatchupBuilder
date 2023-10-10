@@ -1,6 +1,7 @@
 import moment from "moment";
 import { MandatoryOddsFields } from "./matchupBuilderUtils";
 import { Odds, OddsView } from "../interfaces/matchup";
+import { SOCCER_LEAGUES } from "./leagueMap";
 
 export function getOddsQueueDelay(strTimestamp: string): number {
   const now = moment();
@@ -26,4 +27,11 @@ export function oddsWereUpdated(
   return mandatoryOddsFields[oddsType].some(
     odds => gameOddsCurrentLine[odds] !== latestDbOdds[odds]
   );
+}
+
+export function getOddsScopes(oddsType: string, idLeague: string, oddsScope = "full-game") {
+  if (oddsType === "money-line" && SOCCER_LEAGUES.includes(idLeague)) {
+    return "";
+  }
+  return `/${oddsType}/${oddsScope}`;
 }

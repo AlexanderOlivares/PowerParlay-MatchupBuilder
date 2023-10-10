@@ -10,7 +10,7 @@ import {
   makeIsoIfUnixTimestamp,
   missingMandatoryFields,
 } from "./utils/matchupFinderUtils.ts";
-import { leagueLookup } from "./utils/leagueMap.ts";
+import { SOCCER_LEAGUES, leagueLookup } from "./utils/leagueMap.ts";
 import { EventData, GenericError, Matchup, isGenericError } from "./interfaces/matchup.ts";
 import axios from "axios";
 import Bottleneck from "bottleneck";
@@ -51,8 +51,6 @@ const allEvents = await Promise.all(buildSportRequests);
 const leagueEvents = allEvents
   .flat()
   .filter(event => event && !isGenericError(event)) as EventData[];
-
-const SOCCER_LEAGUES = ["4346", "4328", "4331", "4335", "4334", "4332", "4480", "4481"];
 
 function isDrawEligible(league: string) {
   return SOCCER_LEAGUES.includes(league);

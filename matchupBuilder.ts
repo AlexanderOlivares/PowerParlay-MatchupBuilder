@@ -29,7 +29,7 @@ import { fallWeightingModel } from "./lib/leagueWeights.ts";
 import axios from "axios";
 import Queue from "bull";
 import { OddsQueuePayload } from "./interfaces/queue.ts";
-import { getOddsQueueDelay } from "./utils/oddsQueueUtils.ts";
+import { getOddsQueueDelay, getOddsScopes } from "./utils/oddsQueueUtils.ts";
 
 dotenv.config();
 
@@ -102,7 +102,7 @@ const linesRequests = [...leagueNameToOddsType.entries()].map(([league, oddsType
 
   const responses: Promise<LinesResponse>[] = [...oddsTypes].map(async oddsType => {
     try {
-      const scopes = oddsType === "money-line" ? "" : `/${oddsType}/${oddsScope}`;
+      const scopes = getOddsScopes(oddsType, league);
       const { data } = await axios.get(
         `${process.env.LINES_BASE_URL}${token}${process.env.LINES_ENDPOINT}${league}${scopes}.json?date=${targetDate}`
       );
