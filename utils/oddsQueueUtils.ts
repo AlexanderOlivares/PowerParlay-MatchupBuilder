@@ -1,7 +1,7 @@
 import moment from "moment";
 import { MandatoryOddsFields } from "./matchupBuilderUtils";
 import { Odds, OddsView } from "../interfaces/matchup";
-import { SOCCER_LEAGUES } from "./leagueMap";
+import { SOCCER_LEAGUES } from "./leagueMap.ts";
 
 export function getOddsQueueDelay(strTimestamp: string): number {
   const now = moment();
