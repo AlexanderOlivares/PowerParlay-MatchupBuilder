@@ -5,9 +5,13 @@ import { v4 as uuidv4 } from "uuid";
 import { MatchupWithOdds } from "../../interfaces/queue";
 import { GameRows, GameView, Odds, OddsView } from "../../interfaces/matchup";
 import { PrismaClient } from "@prisma/client";
-import axios from "axios";
 import logger from "../../winstonLogger.ts";
-import { getOddsQueueDelay, getOddsScopes, oddsWereUpdated } from "../../utils/oddsQueueUtils.ts";
+import {
+  getCachedOdds,
+  getOddsQueueDelay,
+  getOddsScopes,
+  oddsWereUpdated,
+} from "../../utils/oddsQueueUtils.ts";
 import { leagueLookup } from "../../utils/leagueMap.ts";
 import moment from "moment";
 import "moment-timezone";
@@ -22,44 +26,6 @@ const redis = new Redis(process.env.REDIS_HOST!);
 const prisma = new PrismaClient();
 
 const location = "oddsConsumer";
-
-async function getToken() {
-  const cached = await redis.get("token");
-  if (cached) {
-    logger.info({ message: "valid token" });
-    return cached;
-  }
-
-  const { data } = await axios.get(`${process.env.LINES_TOKEN_REFRESH}`);
-  const matches = data.match(/(?<=\"buildId":").{21}/i);
-  if (!matches) {
-    const message = "Null refresh token";
-    logger.error({
-      message,
-      location,
-    });
-    throw new Error(message);
-  }
-  const token = matches[0];
-  redis.set("token", token, "EX", 60 * 60); // cache for 1 hour
-  return token;
-}
-
-async function getCachedOdds(endpointCacheKey: string) {
-  const cached = await redis.get(endpointCacheKey);
-  if (cached) {
-    logger.info({ message: "odds returned from cache!", cacheKey: endpointCacheKey });
-    return JSON.parse(cached);
-  }
-
-  const token = await getToken();
-  const { data } = await axios.get(
-    `${process.env.LINES_BASE_URL}${token}${process.env.LINES_ENDPOINT}${endpointCacheKey}`
-  );
-  redis.set(endpointCacheKey, JSON.stringify(data), "EX", 60 * 30); // cache for 30 minutes
-
-  return data;
-}
 
 // TODO fix any type
 queue.process(async (job: any) => {
@@ -122,7 +88,7 @@ queue.process(async (job: any) => {
   try {
     const scopes = getOddsScopes(oddsType, idLeague);
     const endpointCacheKey = `${league}${scopes}.json?date=${date}`;
-    response = await getCachedOdds(endpointCacheKey);
+    response = await getCachedOdds(redis, endpointCacheKey, location);
   } catch (error) {
     handleNetworkError(error);
     throw new Error("Odds API request failed");
