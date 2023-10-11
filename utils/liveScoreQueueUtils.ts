@@ -20,9 +20,14 @@ export function getLiveScoreQueueDelay(strTimestamp: string): number {
   const hours = now.diff(gameStartTime, "hours");
 
   // Delay time in milliseconds
-  if (hours > 2) return 180000; // 3 minutes
-  if (hours > 1) return 600000; // 10 minutes
-  return 1800000; // 30 minutes
+  // if (hours > 2) return 180000; // 3 minutes
+  // if (hours > 1) return 600000; // 10 minutes
+  // return 1800000; // 30 minutes
+
+  // testing new delay times
+  if (hours > 2) return 600000; // 10 minutes
+  if (hours > 1) return 1800000; // 30 minutes
+  return 3600000; // 1 hour
 }
 
 export function gameTimeInPast(strTimestamp: string) {

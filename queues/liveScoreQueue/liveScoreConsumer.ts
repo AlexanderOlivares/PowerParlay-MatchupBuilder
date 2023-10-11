@@ -1,10 +1,10 @@
 import Queue from "bull";
+import Redis from "ioredis";
 import dotenv from "dotenv";
-import { EventData, Matchup } from "../../interfaces/matchup.ts";
+import { GameRows, GameView, Matchup, OddsView } from "../../interfaces/matchup.ts";
 import { PrismaClient } from "@prisma/client";
-import axios from "axios";
 import logger from "../../winstonLogger.ts";
-import { MATCHUP_STATUSES, leagueLookup } from "../../utils/leagueMap.ts";
+import { leagueLookup } from "../../utils/leagueMap.ts";
 import "moment-timezone";
 import { handleNetworkError } from "../../utils/matchupFinderUtils.ts";
 import {
@@ -14,16 +14,18 @@ import {
   getMsToGameTime,
   getPickResult,
   getPointsAwarded,
-  getScoresAsNums,
   getSelectFieldsForOddsType,
 } from "../../utils/liveScoreQueueUtils.ts";
-import { isOddsType } from "../../utils/matchupBuilderUtils.ts";
+import { isOddsType, matchGameRowByTeamNames } from "../../utils/matchupBuilderUtils.ts";
 import { MatchupResult, OddsBasedOnOddsType, PickAndOddsId } from "../../interfaces/queue.ts";
+import { getCachedOdds, getOddsScopes } from "../../utils/oddsQueueUtils.ts";
+import moment from "moment";
 
 dotenv.config({ path: "../../.env" });
 
 const queue = new Queue("liveScore", process.env.REDIS_HOST!);
 const prisma = new PrismaClient();
+const redis = new Redis(process.env.REDIS_HOST!);
 
 const location = "liveScoreConsumer";
 
@@ -131,101 +133,102 @@ queue.process(async (job: any) => {
   }
 
   const league = leagueLookup[idLeague];
-
-  let eventResponse;
+  const date = moment.utc(strTimestamp).tz("America/Los_Angeles").format("YYYY-MM-DD");
+  let response;
 
   try {
-    const { data } = await axios.get(
-      `${process.env.SPORTS_BASE_URL}/lookupevent.php?id=${idEvent}`
-    );
-    eventResponse = data;
+    const scopes = getOddsScopes(oddsType, idLeague);
+    const endpointCacheKey = `${league}${scopes}.json?date=${date}`;
+    response = await getCachedOdds(redis, endpointCacheKey, location);
   } catch (error) {
     handleNetworkError(error);
-    throw new Error("LiveScore API request failed");
+    throw new Error("liveScore API request failed");
   }
+  const gameData = response?.pageProps?.oddsTables?.[0]?.oddsTableModel?.gameRows ?? null;
 
-  const event: EventData[] | string | null = eventResponse.events;
+  const gameRows: GameRows[] | null =
+    gameData?.map(({ gameView, oddsViews }: { gameView: GameView; oddsViews: OddsView[] }) => ({
+      gameView,
+      oddsViews,
+    })) ?? null;
 
-  if (!Array.isArray(event)) {
-    const message = "Error in event response";
-    logger.error({
+  if (!gameRows?.length) {
+    const message = "gameRows not found during liveScore update attempt";
+    logger.warn({
       message,
-      location,
-      anomalyData: { matchupId: id, idEvent, idLeague },
+      anomalyData: { id, oddsType, league },
     });
     throw new Error(message);
   }
 
-  const { intHomeScore, intAwayScore, strStatus } = event[0];
+  const gameRow = matchGameRowByTeamNames(gameRows, strAwayTeam, strHomeTeam);
 
-  if (MATCHUP_STATUSES.shouldPush.includes(strStatus)) {
-    await prisma.matchups.update({
-      where: {
-        id,
-      },
-      data: {
-        status: "FT",
-        locked: false,
-        adminUnlocked: true,
-        awayScore: 0,
-        homeScore: 0,
-        pointsTotal: 0,
-      },
+  if (!gameRow) {
+    const message = "No team match in game row";
+    logger.error({
+      message,
+      anomalyData: { matchupId: id, league, oddsType },
     });
-    logger.warn({
-      message: "Game is postponed. Unlocking and setting scores to 0",
-      location,
-      anomalyData: { matchupId: id, strStatus },
-    });
-    job.finished();
-    return id;
+    throw new Error(message);
   }
 
-  // There is a lag period between the game start time and when the API marks it as IP
-  if (MATCHUP_STATUSES.notStarted.includes(strStatus)) {
-    await queue.add(
-      { id },
-      {
-        delay: 60000, // 1 minute
-        attempts: 3,
-        removeOnComplete: {
-          age: 604800, // keep up to 1 week (in seconds)
-          count: 1000, // keep up to 1000 jobs
-        },
-        backoff: {
-          type: "fixed",
-          delay: 180000, // 3 minutes
-        },
-      }
-    );
-    logger.warn({
-      message: "Game time in past but 'NS' status from API. Adding back to liveScoreQueue",
-      location,
-      anomalyData: { matchupId: id, strStatus, gameTime: strTimestamp },
+  const { gameView, oddsViews } = gameRow;
+
+  if (!gameView || !oddsViews) {
+    const message = "missing game view or odds view";
+    logger.error({
+      message,
+      anomalyData: { matchupId: id, league, gameView, oddsViews },
     });
-    job.finished();
-    return id;
+    throw new Error(message);
   }
 
-  if ([intHomeScore, intAwayScore, strStatus].some(field => !field)) {
+  const { gameStatusText, awayTeamScore, homeTeamScore } = gameView;
+
+  // if (MATCHUP_STATUSES.shouldPush.includes(strStatus)) {
+  //   await prisma.matchups.update({
+  //     where: {
+  //       id,
+  //     },
+  //     data: {
+  //       status: "FT",
+  //       locked: false,
+  //       adminUnlocked: true,
+  //       awayScore: 0,
+  //       homeScore: 0,
+  //       pointsTotal: 0,
+  //     },
+  //   });
+  //   logger.warn({
+  //     message: "Game is postponed. Unlocking and setting scores to 0",
+  //     location,
+  //     anomalyData: { matchupId: id, strStatus },
+  //   });
+  //   job.finished();
+  //   return id;
+  // }
+
+  if (
+    [gameStatusText, awayTeamScore, homeTeamScore].some(
+      field => field === null || field === undefined
+    )
+  ) {
     const message = "missing mandatory field in event response";
     logger.error({
       message,
       location,
-      anomalyData: { matchupId: id, league, intHomeScore, intAwayScore, strStatus },
+      anomalyData: { matchupId: id, league, gameStatusText, awayTeamScore, homeTeamScore },
     });
     throw new Error(message);
   }
 
-  if (MATCHUP_STATUSES.gameFinished.includes(strStatus)) {
-    // @ts-ignore already checking for falsy fields in .some func above
-    const { awayScore, homeScore } = getScoresAsNums(intAwayScore, intHomeScore);
-    const pointsTotal = homeScore + awayScore;
+  if (/final/gi.test(gameStatusText)) {
+    const pointsTotal = awayTeamScore + homeTeamScore;
 
     logger.info({
       message: "Begin matchup finished tx to unlock matchup/picks",
       matchupId: id,
-      strStatus,
+      status: gameStatusText,
       location,
     });
     await prisma.$transaction(async tx => {
@@ -234,8 +237,8 @@ queue.process(async (job: any) => {
         data: {
           status: "FT",
           locked: false,
-          awayScore,
-          homeScore,
+          awayScore: awayTeamScore,
+          homeScore: homeTeamScore,
           pointsTotal,
         },
       });
@@ -273,8 +276,8 @@ queue.process(async (job: any) => {
         }
 
         const matchupResult: MatchupResult = {
-          awayScore,
-          homeScore,
+          awayScore: awayTeamScore,
+          homeScore: homeTeamScore,
           pointsTotal,
           oddsType,
           drawEligible,
@@ -442,8 +445,8 @@ queue.process(async (job: any) => {
       location,
       message: "Success -- completed matchup finished tx to unlock matchup/picks/parlays",
       matchupId: id,
-      awayScore,
-      homeScore,
+      awayScore: awayTeamScore,
+      homeScore: homeTeamScore,
       pointsTotal,
     });
   } else {
@@ -464,7 +467,8 @@ queue.process(async (job: any) => {
       }
     );
     logger.info({
-      message: "Game is IP. Adding back to liveScoreQueue for next update",
+      message: "Game is IP. Adding back to liveScoreQueue",
+      status: gameStatusText,
       delay,
       location,
       matchupId: id,
