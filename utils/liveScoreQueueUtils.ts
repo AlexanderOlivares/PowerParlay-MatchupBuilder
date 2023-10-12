@@ -177,13 +177,12 @@ export function getPickResult({
 }
 
 export function getPointsAwarded(betAmount: number, odds: number) {
-  const isPositiveOdds = odds >= 100;
-  if (isPositiveOdds) {
-    return odds === 100 ? betAmount : odds;
-  }
+  const isPositiveOdds = odds >= 0;
   const MULTIPLIER = 100000;
-  const withMultiplier = ((betAmount * 100) / Math.abs(odds)) * MULTIPLIER;
-  return parseFloat((withMultiplier / MULTIPLIER).toFixed(2));
+  const withMultiplier = isPositiveOdds
+    ? betAmount * (odds / 100) * MULTIPLIER
+    : (betAmount / (Math.abs(odds) / 100)) * MULTIPLIER;
+  return parseFloat((withMultiplier / MULTIPLIER + betAmount).toFixed(2));
 }
 
 export function americanToDecimalOdds(americanOdds: number): number {
