@@ -3,9 +3,9 @@ export interface LeagueLookup {
 }
 
 export const leagueLookup: LeagueLookup = {
-  "4424": "mlb-baseball",
+  // "4424": "mlb-baseball",
   "4346": "major-league-soccer",
-  "4516": "wnba-basketball",
+  // "4516": "wnba-basketball",
   "4328": "english-premier-league",
   "4331": "bundesliga",
   "4335": "la-liga",
@@ -16,7 +16,7 @@ export const leagueLookup: LeagueLookup = {
   "4391": "nfl-football",
   "4479": "college-football",
   "4387": "nba-basketball",
-  //  "4607":   "ncaa-basketball",
+  "4607": "ncaa-basketball",
   "4380": "nhl-hockey",
 };
 
