@@ -335,6 +335,7 @@ while (standardMatchupOdds.length < standardMatchupsNeeded) {
   // pick random game from chosen league
   const randomIndex = Math.floor(Math.random() * leagueMatchups.length);
   const matchup = leagueMatchups[randomIndex];
+  logger.info({ matchup, randomIndex });
 
   const { id, idLeague, oddsType, strTimestamp } = matchup;
   seenMatchupsIds.add(id);
