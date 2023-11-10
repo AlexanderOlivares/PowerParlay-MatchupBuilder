@@ -17,8 +17,13 @@ import {
   getSelectFieldsForOddsType,
 } from "../../utils/liveScoreQueueUtils.ts";
 import { isOddsType, matchGameRowByTeamNames } from "../../utils/matchupBuilderUtils.ts";
-import { MatchupResult, OddsBasedOnOddsType, PickAndOddsId } from "../../interfaces/queue.ts";
-import { getCachedOdds, getOddsScopes } from "../../utils/oddsQueueUtils.ts";
+import {
+  MatchupResult,
+  MatchupWithOdds,
+  OddsBasedOnOddsType,
+  PickAndOddsId,
+} from "../../interfaces/queue.ts";
+import { getCachedOdds, getFallbackScores, getOddsScopes } from "../../utils/oddsQueueUtils.ts";
 import moment from "moment";
 
 dotenv.config({ path: "../../.env" });
@@ -36,10 +41,18 @@ queue.process(async (job: any) => {
   const { id } = job.data;
 
   // @ts-ignore
-  const matchup: Matchup | null = await prisma.matchups.findUnique({
+  const matchup: MatchupWithOdds | null = await prisma.matchups.findUnique({
     where: {
       id,
       used: true,
+    },
+    include: {
+      Odds: {
+        take: 1,
+        select: {
+          oddsGameId: true,
+        },
+      },
     },
   });
 
@@ -163,8 +176,23 @@ queue.process(async (job: any) => {
 
   const gameRow = matchGameRowByTeamNames(gameRows, strAwayTeam, strHomeTeam);
 
-  if (!gameRow) {
-    const message = "No team match in game row";
+  let gameView: GameView;
+  if (gameRow) {
+    gameView = gameRow?.gameView;
+  } else {
+    try {
+      const gameId = matchup.Odds[0].oddsGameId;
+      const endpointCacheKey = `/scores/${league}/matchup/${gameId}.json`;
+      response = await getFallbackScores(redis, endpointCacheKey, location);
+      gameView = response?.pageProps?.matchupModel?.matchup?.gameView;
+    } catch (error) {
+      handleNetworkError(error);
+      throw new Error("liveScore API request failed");
+    }
+  }
+
+  if (!gameView) {
+    const message = "No gameView found";
     logger.error({
       message,
       anomalyData: { matchupId: id, league, oddsType },
@@ -172,41 +200,7 @@ queue.process(async (job: any) => {
     throw new Error(message);
   }
 
-  const { gameView, oddsViews } = gameRow;
-
-  if (!gameView || !oddsViews) {
-    const message = "missing game view or odds view";
-    logger.error({
-      message,
-      anomalyData: { matchupId: id, league, gameView, oddsViews },
-    });
-    throw new Error(message);
-  }
-
   const { gameStatusText, awayTeamScore, homeTeamScore } = gameView;
-
-  // if (MATCHUP_STATUSES.shouldPush.includes(strStatus)) {
-  //   await prisma.matchups.update({
-  //     where: {
-  //       id,
-  //     },
-  //     data: {
-  //       status: "FT",
-  //       locked: false,
-  //       adminUnlocked: true,
-  //       awayScore: 0,
-  //       homeScore: 0,
-  //       pointsTotal: 0,
-  //     },
-  //   });
-  //   logger.warn({
-  //     message: "Game is postponed. Unlocking and setting scores to 0",
-  //     location,
-  //     anomalyData: { matchupId: id, strStatus },
-  //   });
-  //   job.finished();
-  //   return id;
-  // }
 
   if (
     [gameStatusText, awayTeamScore, homeTeamScore].some(

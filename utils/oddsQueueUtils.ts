@@ -76,3 +76,17 @@ export async function getCachedOdds(redis: Redis, endpointCacheKey: string, loca
 
   return data;
 }
+
+export async function getFallbackScores(redis: Redis, endpointCacheKey: string, location: string) {
+  const cached = await redis.get(endpointCacheKey);
+  if (cached) {
+    logger.info({ message: "fallback scores returned from cache!", cacheKey: endpointCacheKey });
+    return JSON.parse(cached);
+  }
+
+  const token = await getToken(redis, location);
+  const { data } = await axios.get(`${process.env.LINES_BASE_URL}${token}${endpointCacheKey}`);
+  redis.set(endpointCacheKey, JSON.stringify(data), "EX", 60 * 5); // cache for 5 minutes
+
+  return data;
+}
