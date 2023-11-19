@@ -157,8 +157,9 @@ queue.process(async (job: any) => {
   );
 
   if (oddsChanged) {
+    const oddsId = uuidv4();
     const odds: Odds = {
-      id: uuidv4(),
+      id: oddsId,
       matchupId: id,
       oddsGameId: gameOdds.gameId,
       sportsbook: gameOdds.sportsbook,
@@ -178,7 +179,18 @@ queue.process(async (job: any) => {
       debug: true,
     });
 
-    const updatedOdds = await prisma.odds.create({ data: odds });
+    const updatedOdds = await prisma.$transaction(async tx => {
+      const newOdds = await tx.odds.create({ data: odds });
+      const picksIdsToUpdate = await tx.pick.findMany({
+        where: { matchupId: id, useLatestOdds: true },
+        select: { id: true },
+      });
+      const pickUpdatePromises = picksIdsToUpdate.map(
+        async ({ id }) => await tx.pick.update({ where: { id }, data: { oddsId } })
+      );
+      await Promise.all(pickUpdatePromises);
+      return newOdds;
+    });
 
     if (updatedOdds) {
       logger.info({
