@@ -411,8 +411,11 @@ queue.process(async (job: any) => {
           if (!oddsOfWinningPicks.length) {
             await tx.parlay.update({
               where: { id: parlay.id },
-              data: { locked: false },
-              // TODO if existing points keep those here. nothing should be won/lost
+              data: {
+                locked: false,
+                // Keep existing points. Nothing should be won or lost
+                pointsAwarded: parlay.pointsWagered,
+              },
             });
             continue;
           }
