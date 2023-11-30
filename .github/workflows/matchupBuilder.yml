@@ -7,8 +7,8 @@ on:
         description: "Days in the future to fetch odds. Today is 0 and defualts to 1"
         required: false
         type: string
-  schedule:
-    - cron: "0 1-14/4 * * *" # Every 4 hours between 1am and 2pm UTC
+  # schedule:
+  #   - cron: "0 1-14/4 * * *" # Every 4 hours between 1am and 2pm UTC
 
 jobs:
   build:
