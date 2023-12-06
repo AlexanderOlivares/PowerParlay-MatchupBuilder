@@ -237,7 +237,7 @@ export interface Media {
   jerseyId?: string | null;
 }
 
-export interface Pick {
+export interface SelectedPick {
   id: string;
   userId: string;
   parlayId: string;
@@ -250,9 +250,9 @@ export interface Pick {
   createdAt: Date;
   userUpdatedAt?: Date | null;
   Matchups: Matchup;
-  Odds: Odds;
-  Parlay: Parlay;
-  User: User;
+  // Odds: Odds;
+  // Parlay: Parlay;
+  // User: User;
 }
 
 export interface User {
@@ -263,7 +263,7 @@ export interface User {
   image?: string | null;
   Account: any[];
   Parlay: Parlay[];
-  Pick: Pick[];
+  Pick: SelectedPick[];
   Session: any[];
 }
 
@@ -274,6 +274,6 @@ export interface Parlay {
   createdAt: Date;
   pointsAwarded: number;
   pointsWagered: number;
-  User: User;
-  Pick: Pick[];
+  User: User | null;
+  Pick: SelectedPick[] | null;
 }

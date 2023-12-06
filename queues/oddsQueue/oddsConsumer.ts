@@ -3,7 +3,7 @@ import Queue, { Job } from "bull";
 import dotenv from "dotenv";
 import { v4 as uuidv4 } from "uuid";
 import { MatchupWithOdds } from "../../interfaces/queue";
-import { GameRows, GameView, Odds, OddsView, Pick } from "../../interfaces/matchup";
+import { GameRows, GameView, Odds, OddsView, SelectedPick } from "../../interfaces/matchup";
 import { PrismaClient } from "@prisma/client";
 import logger from "../../winstonLogger.ts";
 import {
@@ -178,9 +178,9 @@ queue.process(async (job: Job) => {
       debug: true,
     });
 
-    const updatedOdds = await prisma.$transaction(async (tx: PrismaClient) => {
-      const newOdds = await tx.odds.create({ data: odds });
-      const picksIdsToUpdate: Pick[] = await tx.pick.findMany({
+    const updatedOdds = await prisma.$transaction(async tx => {
+      const newOdds: Odds = await tx.odds.create({ data: odds });
+      const picksIdsToUpdate: Pick<SelectedPick, "id">[] = await tx.pick.findMany({
         where: { matchupId: id, useLatestOdds: true },
         select: { id: true },
       });
