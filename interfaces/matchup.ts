@@ -228,3 +228,52 @@ export interface LiveScore {
   dateEvent: string;
   updated: string;
 }
+
+export interface Media {
+  teamId: string;
+  teamName: string;
+  badgeId: string;
+  logoId?: string | null;
+  jerseyId?: string | null;
+}
+
+export interface Pick {
+  id: string;
+  userId: string;
+  parlayId: string;
+  oddsId: string;
+  matchupId: string;
+  locked: boolean;
+  useLatestOdds: boolean;
+  pick: string;
+  result: string;
+  createdAt: Date;
+  userUpdatedAt?: Date | null;
+  Matchups: Matchup;
+  Odds: Odds;
+  Parlay: Parlay;
+  User: User;
+}
+
+export interface User {
+  id: string;
+  name?: string | null;
+  email?: string | null;
+  emailVerified?: Date | null;
+  image?: string | null;
+  Account: any[];
+  Parlay: Parlay[];
+  Pick: Pick[];
+  Session: any[];
+}
+
+export interface Parlay {
+  id: string;
+  userId: string;
+  locked: boolean;
+  createdAt: Date;
+  pointsAwarded: number;
+  pointsWagered: number;
+  User: User;
+  Pick: Pick[];
+}

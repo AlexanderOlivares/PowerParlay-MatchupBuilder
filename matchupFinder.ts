@@ -11,7 +11,7 @@ import {
   missingMandatoryFields,
 } from "./utils/matchupFinderUtils.ts";
 import { SOCCER_LEAGUES, leagueLookup } from "./utils/leagueMap.ts";
-import { EventData, GenericError, Matchup, isGenericError } from "./interfaces/matchup.ts";
+import { EventData, GenericError, Matchup, Media, isGenericError } from "./interfaces/matchup.ts";
 import axios from "axios";
 import Bottleneck from "bottleneck";
 
@@ -58,7 +58,7 @@ function isDrawEligible(league: string) {
 
 const teamIds = leagueEvents.flatMap(({ idAwayTeam, idHomeTeam }) => [idAwayTeam, idHomeTeam]);
 
-const teamsWithAssets = await prisma.media.findMany({
+const teamsWithAssets: Media[] = await prisma.media.findMany({
   where: { teamId: { in: teamIds } },
 });
 
@@ -117,10 +117,7 @@ const teamMediaRecords = mediaData.filter(Boolean).map(team => {
   };
 });
 
-const mediaInsertCount = await prisma.media.createMany({
-  // @ts-ignore
-  data: teamMediaRecords,
-});
+const mediaInsertCount = await prisma.media.createMany({ data: teamMediaRecords });
 
 logger.info({ message: `Added media for ${mediaInsertCount.count} teams` });
 

@@ -1,9 +1,9 @@
 import Redis from "ioredis";
-import Queue from "bull";
+import Queue, { Job } from "bull";
 import dotenv from "dotenv";
 import { v4 as uuidv4 } from "uuid";
 import { MatchupWithOdds } from "../../interfaces/queue";
-import { GameRows, GameView, Odds, OddsView } from "../../interfaces/matchup";
+import { GameRows, GameView, Odds, OddsView, Pick } from "../../interfaces/matchup";
 import { PrismaClient } from "@prisma/client";
 import logger from "../../winstonLogger.ts";
 import {
@@ -27,8 +27,7 @@ const prisma = new PrismaClient();
 
 const location = "oddsConsumer";
 
-// TODO fix any type
-queue.process(async (job: any) => {
+queue.process(async (job: Job) => {
   logger.info({ message: "odds queue processing", data: job.data });
 
   const { id } = job.data;
@@ -179,9 +178,9 @@ queue.process(async (job: any) => {
       debug: true,
     });
 
-    const updatedOdds = await prisma.$transaction(async tx => {
+    const updatedOdds = await prisma.$transaction(async (tx: PrismaClient) => {
       const newOdds = await tx.odds.create({ data: odds });
-      const picksIdsToUpdate = await tx.pick.findMany({
+      const picksIdsToUpdate: Pick[] = await tx.pick.findMany({
         where: { matchupId: id, useLatestOdds: true },
         select: { id: true },
       });

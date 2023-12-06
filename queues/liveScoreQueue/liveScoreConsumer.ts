@@ -1,7 +1,7 @@
-import Queue from "bull";
+import Queue, { Job } from "bull";
 import Redis from "ioredis";
 import dotenv from "dotenv";
-import { GameRows, GameView, Matchup, OddsView } from "../../interfaces/matchup.ts";
+import { GameRows, GameView, Pick, Parlay, OddsView } from "../../interfaces/matchup.ts";
 import { PrismaClient } from "@prisma/client";
 import logger from "../../winstonLogger.ts";
 import { leagueLookup } from "../../utils/leagueMap.ts";
@@ -34,8 +34,7 @@ const redis = new Redis(process.env.REDIS_HOST!);
 
 const location = "liveScoreConsumer";
 
-// TODO fix any type
-queue.process(async (job: any) => {
+queue.process(async (job: Job) => {
   logger.info({ message: "liveScore queue processing", data: job.data });
 
   const { id } = job.data;
@@ -84,7 +83,7 @@ queue.process(async (job: any) => {
         location,
         matchupId: id,
       });
-      await prisma.$transaction(async tx => {
+      await prisma.$transaction(async (tx: PrismaClient) => {
         await tx.matchups.update({
           where: { id },
           data: {
@@ -100,7 +99,7 @@ queue.process(async (job: any) => {
           },
         });
 
-        const picks = await tx.pick.findMany({
+        const picks: Pick[] = await tx.pick.findMany({
           where: { matchupId: id },
           select: { parlayId: true },
         });
@@ -225,7 +224,7 @@ queue.process(async (job: any) => {
       status: gameStatusText,
       location,
     });
-    await prisma.$transaction(async tx => {
+    await prisma.$transaction(async (tx: PrismaClient) => {
       await tx.matchups.update({
         where: { id },
         data: {
@@ -293,7 +292,7 @@ queue.process(async (job: any) => {
         });
       }
 
-      const parlays = await tx.parlay.findMany({
+      const parlays: Parlay[] = await tx.parlay.findMany({
         where: { id: { in: [...parlayIdsToUpdate] } },
         include: { Pick: true },
       });
