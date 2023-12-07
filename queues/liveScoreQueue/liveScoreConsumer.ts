@@ -1,7 +1,7 @@
 import Queue, { Job } from "bull";
 import Redis from "ioredis";
 import dotenv from "dotenv";
-import { GameRows, GameView, SelectedPick, OddsView } from "../../interfaces/matchup.ts";
+import { GameRows, GameView, SelectedPick, OddsView, Parlay } from "../../interfaces/matchup.ts";
 import { PrismaClient } from "@prisma/client";
 import logger from "../../winstonLogger.ts";
 import { leagueLookup } from "../../utils/leagueMap.ts";
@@ -46,7 +46,7 @@ queue.process(async (job: Job) => {
       used: true,
     },
     include: {
-      Odds: {
+      odds: {
         take: 1,
         select: {
           oddsGameId: true,
@@ -180,7 +180,7 @@ queue.process(async (job: Job) => {
     gameView = gameRow?.gameView;
   } else {
     try {
-      const gameId = matchup.Odds[0].oddsGameId;
+      const gameId = matchup.odds[0].oddsGameId;
       const endpointCacheKey = `/scores/${league}/matchup/${gameId}.json`;
       response = await getFallbackScores(redis, endpointCacheKey, location);
       gameView = response?.pageProps?.matchupModel?.matchup?.gameView;
@@ -292,13 +292,14 @@ queue.process(async (job: Job) => {
         });
       }
 
-      const parlays = await tx.parlay.findMany({
+      const parlays: Parlay[] = await tx.parlay.findMany({
         where: { id: { in: [...parlayIdsToUpdate] } },
-        include: { Pick: true },
+        include: { picks: true },
       });
 
       for (const parlay of parlays) {
-        const onePickHasLost = parlay.Pick.some(pick => pick.result === "loss");
+        const { picks } = parlay;
+        const onePickHasLost = picks.some(pick => pick.result === "loss");
 
         if (onePickHasLost) {
           await tx.parlay.update({
@@ -307,17 +308,17 @@ queue.process(async (job: Job) => {
           });
         }
 
-        const isParlayWin = parlay.Pick.every(pick => ["win", "push"].includes(pick.result));
+        const isParlayWin = picks.every(pick => ["win", "push"].includes(pick.result));
         const oddsOfWinningPicks: number[] = [];
 
         if (isParlayWin) {
-          const matchupToPickAndOddsId = parlay.Pick.reduce((map, { matchupId, oddsId, pick }) => {
+          const matchupToPickAndOddsId = picks.reduce((map, { matchupId, oddsId, pick }) => {
             map.set(matchupId, { oddsId, pick });
             return map;
           }, new Map<string, PickAndOddsId>());
 
           const matchups = await tx.matchups.findMany({
-            where: { id: { in: parlay.Pick.map(({ matchupId }) => matchupId) } },
+            where: { id: { in: picks.map(({ matchupId }) => matchupId) } },
             select: {
               id: true,
               oddsType: true,
@@ -335,7 +336,7 @@ queue.process(async (job: Job) => {
             logger.error({
               message: "matchup not found when scoring parlay",
               parlayId: parlay.id,
-              matchupId: parlay.Pick[0].matchupId,
+              matchupId: picks[0].matchupId,
             });
             continue;
           }

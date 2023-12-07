@@ -249,7 +249,7 @@ export interface SelectedPick {
   result: string;
   createdAt: Date;
   userUpdatedAt?: Date | null;
-  Matchups: Matchup;
+  matchup?: Matchup;
   // Odds: Odds;
   // Parlay: Parlay;
   // User: User;
@@ -261,10 +261,10 @@ export interface User {
   email?: string | null;
   emailVerified?: Date | null;
   image?: string | null;
-  Account: any[];
-  Parlay: Parlay[];
-  Pick: SelectedPick[];
-  Session: any[];
+  account: any[];
+  parlays: Parlay[];
+  picks: SelectedPick[];
+  sessions: any[];
 }
 
 export interface Parlay {
@@ -274,6 +274,6 @@ export interface Parlay {
   createdAt: Date;
   pointsAwarded: number;
   pointsWagered: number;
-  User: User | null;
-  Pick: SelectedPick[] | null;
+  // user: User | null;
+  picks: SelectedPick[];
 }

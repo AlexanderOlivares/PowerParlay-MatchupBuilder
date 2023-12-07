@@ -6,7 +6,7 @@ export interface OddsQueuePayload {
 }
 
 export interface MatchupWithOdds extends Matchup {
-  Odds: Odds[];
+  odds: Odds[];
 }
 
 export type MatchupResult = Pick<

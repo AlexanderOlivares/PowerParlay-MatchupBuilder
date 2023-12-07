@@ -7,26 +7,8 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Account {
-  id                String  @id
-  userId            String
-  type              String
-  provider          String
-  providerAccountId String
-  refresh_token     String?
-  access_token      String?
-  expires_at        Int?
-  token_type        String?
-  scope             String?
-  id_token          String?
-  session_state     String?
-  User              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([provider, providerAccountId])
-}
-
 model Matchups {
-  id             String  @id @unique
+  id             String  @id @unique @default(uuid())
   drawEligible   Boolean
   idEvent        String
   idHomeTeam     String
@@ -52,20 +34,12 @@ model Matchups {
   status         String
   awayBadgeId    String
   homeBadgeId    String
-  Odds           Odds[]
-  Pick           Pick[]
-}
-
-model Media {
-  teamId   String  @id @unique
-  teamName String
-  badgeId  String
-  logoId   String?
-  jerseyId String?
+  odds           Odds[]
+  picks          Pick[]
 }
 
 model Odds {
-  id         String   @id @unique
+  id         String   @id @unique @default(uuid())
   matchupId  String
   oddsGameId Int
   sportsbook String
@@ -78,23 +52,58 @@ model Odds {
   overOdds   Int?
   underOdds  Int?
   createdAt  DateTime @default(now())
-  Matchups   Matchups @relation(fields: [matchupId], references: [id])
-  Pick       Pick[]
+  matchup    Matchups @relation(fields: [matchupId], references: [id])
+  picks      Pick[]
 }
 
-model Parlay {
-  id            String   @id @unique
-  userId        String
-  locked        Boolean  @default(false)
-  createdAt     DateTime @default(now())
-  pointsAwarded Float    @default(0)
-  pointsWagered Float    @default(100)
-  User          User     @relation(fields: [userId], references: [id])
-  Pick          Pick[]
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  accounts      Account[]
+  parlays       Parlay[]
+  picks         Pick[]
+  sessions      Session[]
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
 }
 
 model Pick {
-  id            String    @id @unique
+  id            String    @id @unique @default(uuid())
   userId        String
   parlayId      String
   oddsId        String
@@ -105,36 +114,27 @@ model Pick {
   result        String    @default("TBD")
   createdAt     DateTime  @default(now())
   userUpdatedAt DateTime?
-  Matchups      Matchups  @relation(fields: [matchupId], references: [id])
-  Odds          Odds      @relation(fields: [oddsId], references: [id])
-  Parlay        Parlay    @relation(fields: [parlayId], references: [id])
-  User          User      @relation(fields: [userId], references: [id])
+  matchup       Matchups  @relation(fields: [matchupId], references: [id])
+  odds          Odds      @relation(fields: [oddsId], references: [id])
+  parlay        Parlay    @relation(fields: [parlayId], references: [id])
+  user          User      @relation(fields: [userId], references: [id])
 }
 
-model Session {
-  id           String   @id
-  sessionToken String   @unique
-  userId       String
-  expires      DateTime
-  User         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+model Parlay {
+  id            String   @id @unique @default(uuid())
+  userId        String
+  locked        Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  pointsAwarded Float    @default(0)
+  pointsWagered Float    @default(100)
+  user          User     @relation(fields: [userId], references: [id])
+  picks         Pick[]
 }
 
-model User {
-  id            String    @id
-  name          String?
-  email         String?   @unique
-  emailVerified DateTime?
-  image         String?
-  Account       Account[]
-  Parlay        Parlay[]
-  Pick          Pick[]
-  Session       Session[]
-}
-
-model VerificationToken {
-  identifier String
-  token      String   @unique
-  expires    DateTime
-
-  @@unique([identifier, token])
+model Media {
+  teamId   String  @id @unique
+  teamName String
+  badgeId  String
+  logoId   String?
+  jerseyId String?
 }

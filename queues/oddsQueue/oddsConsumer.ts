@@ -39,7 +39,7 @@ queue.process(async (job: Job) => {
       used: true,
     },
     include: {
-      Odds: {
+      odds: {
         orderBy: {
           createdAt: "desc",
         },
@@ -76,7 +76,7 @@ queue.process(async (job: Job) => {
     return id;
   }
 
-  const { oddsType, oddsScope, idLeague, strTimestamp, strAwayTeam, strHomeTeam, Odds } =
+  const { oddsType, oddsScope, idLeague, strTimestamp, strAwayTeam, strHomeTeam, odds } =
     matchupWithOdds;
 
   const league = leagueLookup[idLeague];
@@ -131,16 +131,16 @@ queue.process(async (job: Job) => {
     throw new Error(message);
   }
 
-  const latestDbOdds = Odds[0];
+  const latestDbOdds = odds[0];
   const gameOdds = oddsViews.find(
-    (oddsView: OddsView | null) => oddsView?.sportsbook === Odds[0].sportsbook
+    (oddsView: OddsView | null) => oddsView?.sportsbook === odds[0].sportsbook
   );
 
   if (!gameOdds?.currentLine) {
     const message = "no updated odds from same sportsbook found";
     logger.error({
       message,
-      anomalyData: { matchupId: id, sportsbook: Odds[0].sportsbook, league, oddsType },
+      anomalyData: { matchupId: id, sportsbook: odds[0].sportsbook, league, oddsType },
     });
     throw new Error(message);
   }
