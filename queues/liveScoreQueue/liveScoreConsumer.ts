@@ -283,12 +283,24 @@ queue.process(async (job: Job) => {
 
         const { result } = getPickResult(matchupResult);
 
-        await tx.pick.update({
+        logger.info({
+          message: `Starting to update pick ${pick}`,
+          pickId: id,
+          result,
+        });
+
+        const updatedPick = await tx.pick.update({
           where: { id },
           data: {
             result,
             locked: false,
           },
+        });
+
+        logger.info({
+          message: `Finish update to pick ${pick}`,
+          pickId: id,
+          result,
         });
       }
 
@@ -306,6 +318,7 @@ queue.process(async (job: Job) => {
             where: { id: parlay.id },
             data: { pointsAwarded: 0, locked: false },
           });
+          // should there be a continue here?
         }
 
         const isParlayWin = picks.every(pick => ["win", "push"].includes(pick.result));
