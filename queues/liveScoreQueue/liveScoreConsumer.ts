@@ -406,6 +406,13 @@ queue.process(async (job: Job) => {
               odds,
             };
 
+            logger.info({
+              message: "args to getPickResult()",
+              matchupResult,
+              parlayId: parlay.id,
+              matchupId: matchup.id,
+            });
+
             const { result, winningOdds } = getPickResult(matchupResult);
             if (result !== "win" || !winningOdds) {
               logger.warn({
@@ -414,11 +421,19 @@ queue.process(async (job: Job) => {
                 parlayId: parlay.id,
                 matchupId: matchup.id,
                 result,
+                winningOdds,
               });
               continue;
             }
             oddsOfWinningPicks.push(winningOdds);
           }
+
+          logger.info({
+            message: "odds of winning picks",
+            oddsOfWinningPicks,
+            parlayId: parlay.id,
+            matchupId: matchup.id,
+          });
 
           // this should only happen if all parlay picks are pushes
           if (!oddsOfWinningPicks.length) {
