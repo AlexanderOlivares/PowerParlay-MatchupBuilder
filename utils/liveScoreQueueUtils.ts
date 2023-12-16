@@ -147,13 +147,14 @@ export function getPickResult({
         return { result: "push", ...noWinningOdds };
       }
       const awayTeamCoveredSpread = awayScore - Math.abs(awaySpread) > homeScore;
+      const winningOdds = pick === strAwayTeam ? awayOdds : homeOdds;
       if (awayTeamCoveredSpread) {
         return pick === strAwayTeam
-          ? { result: "win", awayOdds }
+          ? { result: "win", winningOdds }
           : { result: "loss", ...noWinningOdds };
       }
       return pick === strHomeTeam
-        ? { result: "win", homeOdds }
+        ? { result: "win", winningOdds }
         : { result: "loss", ...noWinningOdds };
     }
 
@@ -163,13 +164,14 @@ export function getPickResult({
         return { result: "push", ...noWinningOdds };
       }
       const homeTeamCoveredSpread = homeScore - Math.abs(homeSpread) > awayScore;
+      const winningOdds = pick === strHomeTeam ? homeOdds : awayOdds;
       if (homeTeamCoveredSpread) {
         return pick === strHomeTeam
-          ? { result: "win", homeOdds }
+          ? { result: "win", winningOdds }
           : { result: "loss", ...noWinningOdds };
       }
       return pick === strAwayTeam
-        ? { result: "win", awayOdds }
+        ? { result: "win", winningOdds }
         : { result: "loss", ...noWinningOdds };
     }
   }
